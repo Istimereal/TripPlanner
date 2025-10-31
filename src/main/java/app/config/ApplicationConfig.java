@@ -2,8 +2,8 @@ package app.config;
 
 import app.controllers.E1Controller;
 import app.controllers.E2Controller;
-import app.daos.D1DAO;
-import app.daos.E2DAO;
+import app.daos.GuideDAO;
+import app.daos.TripDAO;
 import app.exceptions.ApiException;
 import app.routes.E1Routes;
 import app.routes.E2Routes;
@@ -29,11 +29,11 @@ public class ApplicationConfig {
 
         // Init security + routes
 
-        D1DAO D1DAO = D1DAO.getInstance(emf);
-        E2DAO E2DAO = E2DAO.getInstance(emf);
+        GuideDAO guideDAO = GuideDAO.getInstance(emf);
+        TripDAO tripDAO = TripDAO.getInstance(emf);
 
-        E1Controller E1Controller = new E1Controller(D1DAO);
-        E2Controller E2Controller = new E2Controller(E2DAO, emf);
+        E1Controller E1Controller = new E1Controller(GuideDAO);
+        E2Controller E2Controller = new E2Controller(TripDAO, emf);
 
         SecurityDAO securityDAO = new SecurityDAO(emf);
         SecurityController securityController = new SecurityController(securityDAO);
