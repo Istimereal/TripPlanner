@@ -1,12 +1,12 @@
 package app.config;
 
-import app.controllers.E1Controller;
-import app.controllers.E2Controller;
+import app.controllers.GuideController;
+import app.controllers.TripController;
 import app.daos.GuideDAO;
 import app.daos.TripDAO;
 import app.exceptions.ApiException;
-import app.routes.E1Routes;
-import app.routes.E2Routes;
+import app.routes.GuideRoutes;
+import app.routes.TripRoutes;
 import app.routes.Routes;
 import app.routes.SecurityRoutes;
 import app.security.SecurityController;
@@ -32,17 +32,17 @@ public class ApplicationConfig {
         GuideDAO guideDAO = GuideDAO.getInstance(emf);
         TripDAO tripDAO = TripDAO.getInstance(emf);
 
-        E1Controller E1Controller = new E1Controller(GuideDAO);
-        E2Controller E2Controller = new E2Controller(TripDAO, emf);
+        GuideController GuideController = new GuideController(guideDAO);
+        TripController TripController = new TripController(tripDAO);
 
         SecurityDAO securityDAO = new SecurityDAO(emf);
         SecurityController securityController = new SecurityController(securityDAO);
         SecurityRoutes securityRoutes = new SecurityRoutes(securityController);
 
-        E1Routes E1Routes = new E1Routes(E1Controller);
-        E2Routes E2Routes = new E2Routes(E2Controller);
+        GuideRoutes guideRoutes = new GuideRoutes(GuideController);
+        TripRoutes tripRoutes = new TripRoutes(TripController);
 
-        Routes routes = new Routes(E1Routes, E2Routes);
+        Routes routes = new Routes(guideRoutes, tripRoutes);
 
         Javalin app = Javalin.create(config -> {
             config.showJavalinBanner = false;
