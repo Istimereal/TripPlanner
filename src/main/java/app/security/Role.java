@@ -1,6 +1,6 @@
 package app.security;
 
-import jakarta.persistence.*;
+
 import jakarta.persistence.*;
 import lombok.*;
 
