@@ -3,6 +3,7 @@ package app.controllers;
 import app.daos.TripDAO;
 import app.dtos.TripDTO;
 import app.entities.Trip;
+import app.enums.Category;
 import app.exceptions.ApiException;
 import app.service.TripConverters;
 import io.javalin.http.BadRequestResponse;
@@ -11,7 +12,9 @@ import io.javalin.http.HttpStatus;
 import jakarta.persistence.PersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import app.enums.Category;
 
+import javax.swing.text.Keymap;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -189,5 +192,39 @@ public class TripController {
                     "msg", "There was an unexpected server error with the server"));
             debugLogger.debug(formattedTime + "; Unexpected server while trying to delete Trip with Id: " + id, e);
         }
+    }
+
+    public void getTripsByCategory(Context ctx) {
+        Category category;
+        try {
+           String request = ctx.pathParam("category");
+           if(request != null && !request.isEmpty()) {
+
+    category = Category.valueOf(request.toUpperCase());
+               List<TripDTO> allTrips = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
+               allTrips.stream()
+                       .filter( trip -> trip.getCategory().equals(category))
+                       .toList();
+
+               ctx.status(HttpStatus.OK).json(allTrips);
+               }
+        else{
+            throw new BadRequestResponse("Selected category ned to be BEACH, CITY, FOREST, LAKE, SEA or SNOW");
+        }
+        }
+        catch (IllegalArgumentException iae) {
+            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(),
+                    "msg", "Selected category ned to be BEACH, CITY, FOREST, LAKE, SEA or SNOW"));
+        }
+        catch (PersistenceException pe) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                    "msg",  "Database problems, try again later"));
+            debugLogger.error(formattedTime, "Database problems while getting all trips", pe);
+        }
+        catch (Exception e) {
+
+        }
+
+
     }
 }

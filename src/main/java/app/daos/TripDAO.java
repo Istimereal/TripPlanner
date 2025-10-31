@@ -55,7 +55,7 @@ public class TripDAO {
     public List<Trip> getAllTrips(){
         try(EntityManager em=emf.createEntityManager()){
 
-            TypedQuery<Trip> query = em.createNamedQuery("Trip.findAll",Trip.class);
+            TypedQuery<Trip> query = em.createQuery(("SELECT t FROM Trip t"),Trip.class);
           return query.getResultList();
         }
         catch (PersistenceException pe){
