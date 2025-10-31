@@ -3,6 +3,8 @@ package app.config;
 //import app.entities.;
 import app.entities.E2;
 import app.entities.E2Id;
+import app.entities.Guide;
+import app.entities.Trip;
 import app.security.Role;
 import app.security.User;
 import app.utils.Utils;
@@ -50,9 +52,9 @@ public class HibernateConfig {
     private static void getAnnotationConfiguration(Configuration configuration) {
         configuration.addAnnotatedClass(User.class);
         configuration.addAnnotatedClass(Role.class);
-        configuration.addAnnotatedClass(E2.class);
-        configuration.addAnnotatedClass(E1MT1Owner.class);
-        configuration.addAnnotatedClass(E2Id.class);
+        configuration.addAnnotatedClass(Trip.class);
+        configuration.addAnnotatedClass(Guide.class);
+     //   configuration.addAnnotatedClass(E2Id.class);
 
     }
 
