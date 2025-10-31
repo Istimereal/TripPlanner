@@ -48,7 +48,7 @@ public class GuideDAO {
 
     public List<Guide> getAllGuides() {
         try (EntityManager em = emf.createEntityManager()) {
-            TypedQuery<Guide> query = em.createQuery(("SELECT g FROM guide g"), Guide.class);
+            TypedQuery<Guide> query = em.createQuery(("SELECT g FROM Guide g"), Guide.class);
             return query.getResultList();
         }
         catch (PersistenceException pe) {
