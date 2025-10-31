@@ -28,8 +28,8 @@
         <token.security.version>1.0.2</token.security.version>
 
         <javalin.version>6.3.0</javalin.version>
-        <javalin.port>7075</javalin.port>
-        <db.name>policymatch</db.name>
+        <javalin.port>7078</javalin.port>
+        <db.name>tripplanner</db.name>
     </properties>
 
     <!-- Secutity token library -->

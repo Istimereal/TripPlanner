@@ -40,7 +40,7 @@ public class TripDAO {
         return trip;
     }
 
-    public Trip getTrip(int id) {
+    public Trip getTripById(int id) {
         try(EntityManager em=emf.createEntityManager()){
             Trip found =em.find(Trip.class, id);
          if(found==null)
