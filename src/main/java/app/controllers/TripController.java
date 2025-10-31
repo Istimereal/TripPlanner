@@ -1,10 +1,14 @@
 package app.controllers;
 
+import app.daos.GuideDAO;
 import app.daos.TripDAO;
+import app.dtos.GuideDTO;
+import app.dtos.GuideTotalPriceTripsDTO;
 import app.dtos.TripDTO;
 import app.entities.Trip;
 import app.enums.Category;
 import app.exceptions.ApiException;
+import app.service.GuideConverters;
 import app.service.TripConverters;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -30,9 +34,11 @@ public class TripController {
     private static final Logger logger = LoggerFactory.getLogger("pruduction");
     private static final Logger debugLogger = LoggerFactory.getLogger("debug");
     private final TripDAO tripDAO;
+    private final GuideDAO guideDAO;
 
-    public TripController(TripDAO tripDAO) {
+    public TripController(TripDAO tripDAO, GuideDAO guideDAO) {
         this.tripDAO = tripDAO;
+        this.guideDAO = guideDAO;
     }
 
     public void getAllTrips(Context ctx) {
@@ -222,9 +228,23 @@ public class TripController {
             debugLogger.error(formattedTime, "Database problems while getting all trips", pe);
         }
         catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                    "msg", "There was an unexpected server error with the server"));
+            debugLogger.debug(formattedTime, " Unexpected server while trying to get all trips", e);
+        }
+    }
+
+    public void totalPriceTripsByGuide(Context ctx) {
+        try{
+            disableCache(ctx);
+
+            List<TripDTO> allTrips = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
+            List<GuideDTO> allGuides = GuideConverters.convertToGuideDTO(guideDAO.getAllGuides());
+allGuides.get(0).getId()
+            allGuides.forEach(g -> g.getId());
+            allTrips.forEach(g, t -> g.getTr t.getPrice());
+            List<GuideTotalPriceTripsDTO> allGuideTotal = allGuides.forEach();
 
         }
-
-
     }
 }

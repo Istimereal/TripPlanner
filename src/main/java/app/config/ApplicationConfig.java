@@ -33,7 +33,7 @@ public class ApplicationConfig {
         TripDAO tripDAO = TripDAO.getInstance(emf);
 
         GuideController GuideController = new GuideController(guideDAO);
-        TripController TripController = new TripController(tripDAO);
+        TripController TripController = new TripController(tripDAO,  guideDAO);
 
         SecurityDAO securityDAO = new SecurityDAO(emf);
         SecurityController securityController = new SecurityController(securityDAO);
