@@ -54,7 +54,7 @@ public class HibernateConfig {
         configuration.addAnnotatedClass(Role.class);
         configuration.addAnnotatedClass(Trip.class);
         configuration.addAnnotatedClass(Guide.class);
-     //   configuration.addAnnotatedClass(E2Id.class);
+
 
     }
 

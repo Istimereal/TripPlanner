@@ -1,11 +1,12 @@
 package app.entities;
 
+import app.enums.Category;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.Locale;
+
 
 @Setter
 @Getter
@@ -38,7 +39,7 @@ public class Trip {
     private double price;
 
     @Column(name = "category", nullable = false)
-    private Locale.Category category;
+    private Category category;
 
     @ManyToOne
     @JoinColumn(name = "guide_id")
