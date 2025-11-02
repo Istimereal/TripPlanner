@@ -29,7 +29,7 @@ public class GuideController {
     String formattedTime = timeStamp.format(formatter);
 
     private static final Logger logger = LoggerFactory.getLogger("pruduction");
-    private static final Logger debugLogger = LoggerFactory.getLogger("debug");
+    private static final Logger debugLogProd = LoggerFactory.getLogger("debug");
     private final GuideDAO guideDAO;
 
     public GuideController(GuideDAO guideDAO) {
@@ -54,7 +54,7 @@ public class GuideController {
         catch (PersistenceException pe){
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg","Database problems, try agian later"));
-            debugLogger.error(formattedTime, "Database problems while creation a Guide", pe);
+            debugLogProd.error(formattedTime, "Database problems while creation a Guide", pe);
         }
         catch(Exception e) {
             if (
@@ -68,7 +68,7 @@ public class GuideController {
                         "status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                         "msg", "There was an unexpected problem with the server"
                 ));
-                debugLogger.error(formattedTime, "Unexpected server problem while creating a Guide", e);
+                debugLogProd.error(formattedTime, "Unexpected server problem while creating a Guide", e);
             }}
     }
 
@@ -87,13 +87,13 @@ public void geAlltGuides(Context ctx){
     catch (PersistenceException pe) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                 "message", "Database problems, try agian later"));
-        debugLogger.error(formattedTime + " Database  persistence error while persisting new guide", pe);
+        debugLogProd.error(formattedTime + " Database  persistence error while persisting new guide", pe);
     }
     catch (Exception e) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
                 HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg",
                 "There was an unexpected error with the server, try again later"));
-        debugLogger.debug(formattedTime, "unexpected error with the server from createGuide ", e);
+        debugLogProd.debug(formattedTime, "unexpected error with the server from createGuide ", e);
     }
 }
 
@@ -117,13 +117,13 @@ public  void getGuideById(Context ctx){
     catch (PersistenceException pe) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                 "msg","Database problems, try agian later"));
-        debugLogger.debug(formattedTime, "Error with database trying to find Guide by Id: " + id + " ", pe);
+        debugLogProd.debug(formattedTime, "Error with database trying to find Guide by Id: " + id + " ", pe);
     }
     catch (Exception e) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
                 HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg",
                 "There was an unexpected error with the server, try again later"));
-        debugLogger.debug(formattedTime, "unexpected error with the server trying to find Guide by ID: ", e);
+        debugLogProd.debug(formattedTime, "unexpected error with the server trying to find Guide by ID: ", e);
     }
 }
 public void updateGuide(Context ctx){
@@ -167,11 +167,11 @@ public void updateGuide(Context ctx){
     }
     catch (PersistenceException pe) {
         ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Database problems, try again later"));
-        debugLogger.debug(formattedTime + "; Database error trying to update Guide", pe);
+        debugLogProd.debug(formattedTime + "; Database error trying to update Guide", pe);
     }
     catch (Exception e) {
         ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Unexpected error updating Guide" + ctx.pathParam("id")));
-        debugLogger.debug(formattedTime + "; Unexpected error trying to update Guide:" + id + "OperationState: ", e);
+        debugLogProd.debug(formattedTime + "; Unexpected error trying to update Guide:" + id + "OperationState: ", e);
     }    
 }
 
@@ -199,12 +199,12 @@ public void deleteGuide(Context ctx){
     catch (PersistenceException pe) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                 "msg", "There was a problem with the database"));
-        debugLogger.debug(formattedTime + "; Database problems while trying to delete Guide with Id: " + id, pe);
+        debugLogProd.debug(formattedTime + "; Database problems while trying to delete Guide with Id: " + id, pe);
     }
     catch(Exception e) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                 "msg", "There was an unexpected server error with the server"));
-        debugLogger.debug(formattedTime + "; Unexpected server while trying to delete Guide with Id: " + id, e);
+        debugLogProd.debug(formattedTime + "; Unexpected server while trying to delete Guide with Id: " + id, e);
     }
 }
 }

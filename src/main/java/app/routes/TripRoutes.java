@@ -19,7 +19,7 @@ public class TripRoutes {
     public EndpointGroup getTripRoutes() {
         return () -> {
 
-            get("/", tripController::getAllTrips, Role.ADMIN, Role.USER);
+            get("/", tripController::getTrips, Role.ADMIN, Role.USER);
 
             get("/{id}", tripController::getTripById, Role.ADMIN, Role.USER);
 
@@ -29,7 +29,7 @@ public class TripRoutes {
 
             delete("/{id}", tripController::deleteTrip, Role.ADMIN);
 
-            get("trips?category{category}", tripController::getAllTrips, Role.ADMIN, Role.USER);
+            get("/guides/totalprice", tripController::totalPriceTripsByGuide, Role.ADMIN);
 
 
       //      put("/{tripId}/guides/{guideId}", tripController::linkGuide, Role.ADMIN);
