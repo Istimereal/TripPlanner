@@ -40,7 +40,7 @@ public class ApplicationConfig {
         SecurityRoutes securityRoutes = new SecurityRoutes(securityController);
 
         GuideRoutes guideRoutes = new GuideRoutes(GuideController);
-        TripRoutes tripRoutes = new TripRoutes(TripController);
+        TripRoutes tripRoutes = new TripRoutes(TripController, GuideController);
 
         Routes routes = new Routes(guideRoutes, tripRoutes);
 

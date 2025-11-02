@@ -9,6 +9,7 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceException;
 import jakarta.persistence.TypedQuery;
 import org.hibernate.exception.ConstraintViolationException;
+import org.testcontainers.shaded.org.checkerframework.checker.units.qual.A;
 
 import java.util.List;
 
@@ -28,9 +29,8 @@ public class GuideDAO {
     }
 
     public Guide createGuide(Guide guide) {
-
-        try(EntityManager em = emf.createEntityManager()) {
-
+        EntityManager em = emf.createEntityManager();
+        try {
             em.getTransaction().begin();
             em.persist(guide);
             em.getTransaction().commit();
@@ -39,11 +39,19 @@ public class GuideDAO {
             throw new ApiException(400, "Guide already exists");
         }
         catch (PersistenceException pe) {
-
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
             throw new ApiException(500,"Persistence error");
         }
         catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
             throw new ApiException(500, "unknown error");
+        }
+        finally {
+            em.close();
         }
         return guide;
     }
@@ -59,6 +67,7 @@ public class GuideDAO {
         catch (Exception e) {
             throw new ApiException(500, "unknown error");
         }
+
     }
 
     public Guide getGuideById(int id) {
@@ -66,7 +75,7 @@ public class GuideDAO {
         try (EntityManager em = emf.createEntityManager()) {
    Guide guide =  em.find(Guide.class, id);
             if(guide == null) {
-                throw new ApiException(400, "Guide with" + id + "Does not exist");
+                throw new ApiException(404, "Guide with" + id + "Does not exist");
             }
             return guide;
         }
@@ -77,11 +86,12 @@ public class GuideDAO {
 
     public Guide updateGuide(Integer integer, Guide guide) {
 Guide target;
-
-        try(EntityManager em = emf.createEntityManager()) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            em.getTransaction().begin();
             target = em.find(Guide.class, integer);
            if(target == null) {
-               throw new ApiException(400, "Guide with" + guide.getId() + "Does not exist");
+               throw new ApiException(404, "Guide with" + guide.getId() + "Does not exist");
            }
            if(guide.getName() != null) {
                target.setName(guide.getName());
@@ -95,22 +105,35 @@ Guide target;
            if(guide.getExperienceInYears() != 0) {
                target.setExperienceInYears(guide.getExperienceInYears());
            }
-           em.getTransaction().begin();
            em.merge(target);
            em.getTransaction().commit();
             return target;
         }
+        catch (ApiException ae) {
+            if (em.getTransaction().isActive()){
+                em.getTransaction().rollback();
+                throw ae;
+            }
+        }
         catch (PersistenceException pe) {
+            if (em.getTransaction().isActive()){
+                em.getTransaction().rollback();}
             throw new ApiException(500, "Persistence error");
         }
         catch (Exception e) {
+            if (em.getTransaction().isActive()){
+                em.getTransaction().rollback();}
             throw new ApiException(500, "unknown error");
         }
+        finally {
+            em.close();
+        }
+        return null;
     }
 
-
     public void deleteGuide(Integer integer) {
-        try(EntityManager em = emf.createEntityManager()) {
+        EntityManager em = emf.createEntityManager();
+        try{
             em.getTransaction().begin();
 
         Guide delete = em.find(Guide.class, integer);
@@ -119,16 +142,25 @@ Guide target;
         }
         delete.getTrips().clear();
             if(delete == null) {
-                throw new ApiException(400, "Guide with" + integer + "Does not exist");
+                if (em.getTransaction().isActive()){
+                    em.getTransaction().rollback();}
+                throw new ApiException(404, "Guide with" + integer + "Does not exist");
             }
             em.remove(delete);
             em.getTransaction().commit();
         }
         catch (PersistenceException pe) {
+            if (em.getTransaction().isActive()){
+                em.getTransaction().rollback();}
             throw new ApiException(500, "Persistence error");
         }
         catch (Exception e) {
+            if (em.getTransaction().isActive()){
+                em.getTransaction().rollback();}
             throw new ApiException(500, "unknown error");
+        }
+        finally {
+            em.close();
         }
     }
 }
