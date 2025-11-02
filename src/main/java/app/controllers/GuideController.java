@@ -5,6 +5,8 @@ import app.dtos.GuideDTO;
 import app.entities.Guide;
 import app.exceptions.ApiException;
 import app.service.GuideConverters;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.io.JsonEOFException;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -12,6 +14,7 @@ import jakarta.persistence.PersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -36,11 +39,14 @@ public class GuideController {
     public void createGuide(Context ctx) {
         try {
             GuideDTO newGuide = ctx.bodyAsClass(GuideDTO.class);
+            if(newGuide == null){
+                throw new ApiException(400, "Invalid post, see documentation for correct form");
+            }
 
             GuideDTO createdGuide = GuideConverters.convertToGuideDTO(guideDAO.createGuide(GuideConverters.convertToGuide(newGuide)));
             ctx.status(HttpStatus.CREATED).json(createdGuide);
         }
-        catch(BadRequestResponse br) {
+      catch(BadRequestResponse br) {
             ctx.status(HttpStatus.BAD_REQUEST).
                     json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(),
                             "msg", "Invalid post, see documentation for correct form"));
@@ -51,13 +57,22 @@ public class GuideController {
             debugLogger.error(formattedTime, "Database problems while creation a Guide", pe);
         }
         catch(Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                    "msg", "There was an unexpected problem with the server"));
-            debugLogger.error(formattedTime, "Unexpected server problem while creating a Guide", e);
-        }
+            if (
+                    e.getCause() instanceof com.fasterxml.jackson.core.JacksonException) {
+                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of(
+                        "status", HttpStatus.BAD_REQUEST.getCode(),
+                        "msg", "Invalid post, see documentation for correct form"
+                ));
+            } else {
+                ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of(
+                        "status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                        "msg", "There was an unexpected problem with the server"
+                ));
+                debugLogger.error(formattedTime, "Unexpected server problem while creating a Guide", e);
+            }}
     }
 
-public void getGuides(Context ctx){
+public void geAlltGuides(Context ctx){
     try {
         disableCache(ctx);
         List<GuideDTO> guideDTOs = GuideConverters.convertToGuideDTO(guideDAO.getAllGuides());
@@ -114,25 +129,25 @@ public  void getGuideById(Context ctx){
 public void updateGuide(Context ctx){
 
     int id = 0;
-    Guide guide = null;
     try {
         id = Integer.parseInt(ctx.pathParam("id"));
         if (id > 0) {
-            guide = guideDAO.getGuideById(id);
+            Guide guide = guideDAO.getGuideById(id);
 
             if (guide == null) {
-                ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(), "message", "Guide not found"));
+                ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(),
+                        "message", "Guide not found"));
                 return;
             }
         }
-        GuideDTO GuideUpdate = ctx.bodyAsClass(GuideDTO.class);
-        if(GuideUpdate.getName() != null && GuideUpdate.getName().isEmpty()) {
+        GuideDTO guideUpdate = ctx.bodyAsClass(GuideDTO.class);
+        if(guideUpdate.getName() != null && guideUpdate.getName().isEmpty()) {
             throw new BadRequestResponse("Name cannot be empty, exclude or put desired name");
         }
-        if(GuideUpdate.getEmail() != null && GuideUpdate.getEmail().isEmpty()) {
+        if(guideUpdate.getEmail() != null && guideUpdate.getEmail().isEmpty()) {
             throw new BadRequestResponse("Email cannot be empty, exclude or put desired adress");
         }
-        Guide forUpdate = GuideConverters.convertToGuide(GuideUpdate);
+        Guide forUpdate = GuideConverters.convertToGuide(guideUpdate);
         Guide updateResult =  guideDAO.updateGuide(id, forUpdate);
         GuideDTO updated = GuideConverters.convertToGuideDTO(updateResult);
         ctx.status(HttpStatus.OK).json(updated);
@@ -161,12 +176,13 @@ public void updateGuide(Context ctx){
 }
 
 public void deleteGuide(Context ctx){
-    int id = 0;
+   Integer id = 0;
     try {
         disableCache(ctx);
         id = Integer.parseInt(ctx.pathParam("id"));
         if (id > 0) {
             guideDAO.deleteGuide(id);
+            ctx.json(Map.of("status", HttpStatus.OK.getCode(), "message", "Guide deleted"));
         }
         else {
             ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"message", "You need to type at id above 0"));
@@ -190,6 +206,6 @@ public void deleteGuide(Context ctx){
                 "msg", "There was an unexpected server error with the server"));
         debugLogger.debug(formattedTime + "; Unexpected server while trying to delete Guide with Id: " + id, e);
     }
-} 
+}
 }
 

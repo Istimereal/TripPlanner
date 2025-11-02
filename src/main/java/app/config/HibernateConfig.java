@@ -1,8 +1,6 @@
 package app.config;
 
 //import app.entities.;
-import app.entities.E2;
-import app.entities.E2Id;
 import app.entities.Guide;
 import app.entities.Trip;
 import app.security.Role;
@@ -54,8 +52,6 @@ public class HibernateConfig {
         configuration.addAnnotatedClass(Role.class);
         configuration.addAnnotatedClass(Trip.class);
         configuration.addAnnotatedClass(Guide.class);
-
-
     }
 
     private static EntityManagerFactory createEMF(boolean forTest, String dbName) {
@@ -90,8 +86,12 @@ public class HibernateConfig {
     private static String getDBName() {
         return Utils.getPropertyValue("db.name", "properties-from-pom.properties");
     }
+
     private static Properties setBaseProperties(Properties props) {
-        props.put("hibernate.connection.driver_class", "org.postgresql.Driver");
+        if (!isTest) {
+            props.put("hibernate.connection.driver_class", "org.postgresql.Driver");
+        }
+    //    props.put("hibernate.connection.driver_class", "org.postgresql.Driver");
         props.put("hibernate.hbm2ddl.auto", "create");  // set to "update" when in production
         props.put("hibernate.current_session_context_class", "thread");
         props.put("hibernate.show_sql", "false");
@@ -109,15 +109,14 @@ public class HibernateConfig {
     }
 
     private static Properties setDevProperties(Properties props) {
-        props.put("hibernate.connection.url", "jdbc:postgresql://localhost:5432/policymatch");
+        props.put("hibernate.connection.url", "jdbc:postgresql://localhost:5432/tripplanner");
         props.put("hibernate.connection.username", "dev2");
         props.put("hibernate.connection.password", "ax22");
-        props.put("hibernate.hbm2ddl.auto", "create"); // To keep tables
+        props.put("hibernate.hbm2ddl.auto", "create-drop"); // To keep tables
         props.put("hibernate.show_sql", "true");
         props.put("hibernate.format_sql", "true");
         return props;
     }
-
 
     private static Properties setTestProperties(Properties props) {
         props.put("hibernate.connection.driver_class", "org.testcontainers.jdbc.ContainerDatabaseDriver");
@@ -127,7 +126,7 @@ public class HibernateConfig {
         props.put("hibernate.connection.password", "postgres");
         props.put("hibernate.archive.autodetection", "class");
         props.put("hibernate.show_sql", "true");
-        props.put("hibernate.hbm2ddl.auto", "create"); // update for production
+        props.put("hibernate.hbm2ddl.auto", "create-drop"); // update for production
         return props;
     }
 }

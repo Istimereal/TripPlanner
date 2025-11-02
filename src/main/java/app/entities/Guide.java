@@ -3,10 +3,12 @@ package app.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Setter
 @Getter
+@EqualsAndHashCode
 @Entity
 @Builder
 @AllArgsConstructor
@@ -29,11 +31,16 @@ public class Guide {
     private int phoneNumber;
 
     @Column(name = "experience_in_years", nullable = false)
-    private int experienceInYears;
+    private Integer experienceInYears;
 
-    @OneToMany(mappedBy = "guide", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
-    private List<Trip> trips;
+    @OneToMany(mappedBy = "guide", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, fetch = FetchType.LAZY)
+    private List<Trip> trips = new ArrayList<Trip>();
 
-
+    public void addTrip(Trip trip) {
+        if ( trip != null) {
+            this.trips.add(trip);
+            trip.setGuide(this);
+        }
+    }
 
 }

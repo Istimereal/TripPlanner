@@ -21,11 +21,22 @@ public class GuideConverters {
     }
 
     public static Guide convertToGuide(GuideDTO guideDTO){
-        Guide.GuideBuilder builder = Guide.builder()
-                .name(guideDTO.getName())
-                .email(guideDTO.getEmail())
-                .phoneNumber(guideDTO.getPhoneNumber())
-                .experienceInYears(guideDTO.getExperienceInYears());
+        Guide.GuideBuilder builder = Guide.builder();
+        if (guideDTO.getName() != null) {
+            builder.name(guideDTO.getName());
+        }
+        if (guideDTO.getEmail() != null) {
+             builder.name(guideDTO.getName());
+        }
+              if(guideDTO.getEmail() != null){
+                  builder.email(guideDTO.getEmail());
+              }
+             if(guideDTO.getPhoneNumber() > 0) {
+                builder.phoneNumber(guideDTO.getPhoneNumber());
+             }
+             if(guideDTO.getExperienceInYears() != 0) {
+                builder.experienceInYears(guideDTO.getExperienceInYears());
+             }
         if(guideDTO.getId() > 0){
             builder.id(guideDTO.getId());
         }

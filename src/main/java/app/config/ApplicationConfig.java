@@ -56,11 +56,11 @@ public class ApplicationConfig {
 
 
         // Åbne endpoints (ingen auth)
-        app.get("/", ctx -> ctx.json(Map.of("status", "API is running ✅")));
+        app.get("/", ctx -> ctx.json(Map.of("status", "API is running")));
 
         // Security filters (kører før matched routes)
-        app.beforeMatched(securityController::authenticate);
-        app.beforeMatched(securityController::authorize);
+        app.beforeMatched(securityController.authenticate());
+        app.beforeMatched(securityController.authorize());
 
         // CORS + exception handling
         setCORS(app);

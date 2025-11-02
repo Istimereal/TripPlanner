@@ -1,114 +1,120 @@
-@url = http://localhost:7075/api/v1
-http://localhost:7075/api/v1
+### @url = http://localhost:7080/api/v1
+@baseUrl = http://localhost:7080/api/v1
+@username = admin1
+@password = admin12
+@username1 = user12
+@password1 = test12
 
-### A simple get request to the test endpoint. No need for login
-POST {{url}}/auth/register/
+### Create a new user - this one will only get a USER role by default
+POST {{baseUrl}}/auth/register/
 
-####   <!--create new user-->
-POST {{url}}/auth/register/
+{
+    "username1": "user12",
+    "password1": "test12"
+}
+
+### Create a new Admin user
+POST {{baseUrl}}/auth/register/
+
+{
+    "username": "admin1",
+    "password": "admin12"
+}
+
+> {% client.global.set("token", response.body.token); %}
+
+### Login to get a token USER
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "username": "user",
-  "password": "test123",
-  "email": "ab@124.dk",
-  "city": "Lyngby"
+  "username1": "{{username1}}",
+  "password1": "{{password1}}"
 }
 
-###
-POST {{url}}/auth/login/
-content-type: application/json
+> {% client.global.set("token", response.body.token); %}
 
-{
-  "username": "user",
-  "password": "test123"
-}
 
-> {%
-    client.global.set("jwt_token", response.body.token);
-    console.log("JWT Token:", client.global.get("jwt_token"));
-%}
-
-###
-POST{{url}}/questions/
-Authorization: Bearer {{admin_token}}
-
-{
-  "header": "Climate change responsibility",
-  "questionText": "Do you think Denmark should take stronger action against climate change, even if it costs jobs in certain industries?",
-  "subject": "environment"
-}
-
-### Login som admin
-POST http://localhost:7075/api/v1/auth/login
+### Login to get a token ADMIN
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "username": "admin",
-  "password": "admin123"
+  "username": "{{username}}",
+  "password": "{{password}}"
 }
 
-> {%
-    client.global.set("admin_token", response.body.token);
-%}
+> {% client.global.set("token", response.body.token); %}
 
-### Opret question som admin
-POST http://localhost:7075/api/v1/questions/
-Authorization: Bearer {{admin_token}}
-Content-Type: application/json
+###  Get allGuides
+GET {{baseUrl}}/guides
+Authorization: Bearer {{token}}
 
-[
-  {
-    "header": "AI in school",
-    "questionText": "Should schools allow students to use AI tools like ChatGPT during exams?",
-    "subject": "technology"
-  }
-]
+### Get guideById
+GET {{baseUrl}}/guides/1
+Authorization: Bearer {{token}}
 
-###
-POST {{url}}/response
-Authorization: Bearer {{user_token}}
-
-[{
-“id” : 2,
-“response”: “agree”,
-“importance”: “high”
-},
-{
-“id” : 3,
-“response” : “disagree”,
-“importance” : “low”
-},
-{
-“id” : 3,
-“response” : “neutral”,
-“importance” : “medium”
-}
-]
-
-###
-POST {{url}}/response
-Authorization: Bearer {{user_token}}
-[{
-  "userId": 2,
-  "questionId": 1,
-  "response": "AGREE",
-  "importance": "HIGH"
-}]
-
-###
-GET {{url}}/response
-Authorization: Bearer {{user_token}}
-
-###
-DELETE {{url}}/questions/1
-Authorization: Bearer {{admin_token}}
-
-###
-PATCH {{url}}/questions
-Authorization: Bearer {{admin_token}}
+### Create new guide
+POST {{baseUrl}}/guides
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "questionText": "Should Denmark prioritize nuclear energy as part of its green transition?"
+  "name": "Jonas",
+  "email": "jonas@guide.dk",
+  "phoneNumber": 12345678,
+  "experienceInYears": 5
 }
+
+### Update existing guide
+PUT {{baseUrl}}/guides/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "experienceInYears": 7
+}
+
+### Delete guide
+DELETE {{baseUrl}}/guides/1
+Authorization: Bearer {{token}}
+
+### Create new trip
+POST {{baseUrl}}/trips
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Beach trip",
+  "startTime": "2025-11-01T09:00:00",
+  "endTime": "2025-11-01T17:00:00",
+  "locationCordinates": "57.048",
+  "price": 5000,
+  "category": "BEACH"
+}
+
+### Update trip
+PUT {{baseUrl}}/trips/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "price": 7000
+}
+
+### Get all trips
+GET {{baseUrl}}/trips
+Authorization: Bearer {{token}}
+
+### Get trip by id
+GET {{baseUrl}}/trips/1
+Authorization: Bearer {{token}}
+
+### Delete trip
+DELETE {{baseUrl}}/trips/1
+Authorization: Bearer {{token}}
+
+
+### Get trips by category
+GET {{baseUrl}}/trips/category/BEACH
+Authorization: Bearer {{token}}
