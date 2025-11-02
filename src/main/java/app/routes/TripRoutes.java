@@ -32,24 +32,15 @@ public class TripRoutes {
         return () -> {
 
             get("/", tripController::getTrips, Role.ADMIN, Role.USER);
-
             get("/{id}", tripController::getTripById, Role.ADMIN, Role.USER);
-
             post("/", tripController::createTrip, Role.ADMIN);
-
             put("/{id}", tripController::updateTrip, Role.ADMIN);
-
             delete("/{id}", tripController::deleteTrip, Role.ADMIN);
-
             get("/guides/totalprice", tripController::totalPriceTripsByGuide, Role.ADMIN);
-
             get("/{id}/packing/weight", tripController::getPackingWeight, Role.ADMIN, Role.USER);
-
-            // POST /guides
-            post("/guides", guideController::createGuide, Role.ADMIN);
-
             put("/{tripId}/guides/{guideId}", tripController::linkGuideToTrip, Role.ADMIN);
-
+            // POST /guides
+             post("/guides", guideController::createGuide, Role.ADMIN);
         };
     }
 

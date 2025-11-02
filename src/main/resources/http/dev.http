@@ -1,4 +1,3 @@
-### @url = http://localhost:7080/api/v1
 @baseUrl = http://localhost:7080/api/v1
 @adminUsername = admin1
 @adminPassword = admin12
@@ -109,7 +108,6 @@ Content-Type: application/json
 PUT {{baseUrl}}/trips/1/guides/1
 Authorization: Bearer {{token}}
 
-
 ### Get all trips
 GET {{baseUrl}}/trips
 Authorization: Bearer {{token}}
@@ -122,11 +120,15 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/trips/1
 Authorization: Bearer {{token}}
 
+### Get trip by id and packing list by trip Category (same as above just added feature)
+GET {{baseUrl}}/trips/1
+Authorization: Bearer {{token}}
+
 ### Delete trip
 DELETE {{baseUrl}}/trips/1
 Authorization: Bearer {{token}}
 
-### Get price Guide by Trips
+### Get total price Guide by Trips
 GET {{baseUrl}}/trips/guides/totalprice
 Authorization: Bearer {{token}}
 

@@ -7,6 +7,8 @@ import app.exceptions.ApiException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.IOException;
 import java.net.URI;
@@ -17,11 +19,13 @@ import java.net.http.HttpResponse;
 
 public class PackingService {
 
-    public static PackingListDTO getPackingList(Category category){
+    public static PackingListDTO getPackingList(String category) {
         PackingListDTO results =  null;
         String uri = "https://packingapi.cphbusinessapps.dk/packinglist/" + category;
 
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         HttpClient client = HttpClient.newHttpClient();
 
         try {
@@ -35,7 +39,7 @@ public class PackingService {
             if (response.statusCode() == 200) {
                 Object jSonGet = response.body();
 
-         return mapper.readValue(jSonGet.toString(), PackingListDTO.class);
+         return objectMapper.readValue(jSonGet.toString(), PackingListDTO.class);
 
             } else if (response.statusCode() != 200) {
                 throw new ApiException(response.statusCode(), "Unexpected response from Packing service");

@@ -31,10 +31,9 @@ public class TripController {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     String formattedTime = timeStamp.format(formatter);
 
-    private static final Logger logger = LoggerFactory.getLogger("pruduction");
+    private static final Logger logger = LoggerFactory.getLogger("production");
     private static final Logger debugLogProd = LoggerFactory.getLogger("debug");
     private final TripDAO tripDAO;
-
 
     public TripController(TripDAO tripDAO) {
         this.tripDAO = tripDAO;
@@ -90,8 +89,14 @@ public class TripController {
             if (id > 0) {
                 TripDTO tripDTO = TripConverters.convertToTripDTO(tripDAO.getTripById(id));
                 category = tripDTO.getCategory();
-                PackingListDTO packingList = PackingService.getPackingList(category);
+                String request =category.name().toLowerCase();
+                PackingListDTO packingList = PackingService.getPackingList(request);
+
+                System.out.println("Packaging liste" + packingList.getItems().toString());
                 tripDTO.setPackingList(packingList);
+                System.out.println("tripDTO med packaging list: " + tripDTO.getPackingList().toString());
+
+                System.out.println("tripDTO to string: " + tripDTO);
                 ctx.status(200).json(tripDTO);
             }
             else {
@@ -111,7 +116,7 @@ public class TripController {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(
                     Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR,
                     "msg", "Problems getting packing ites externaly, try again later"));
-            debugLogProd.error(formattedTime, "Problems getting packing ites externaly: ", ae);
+            debugLogProd.error(formattedTime, "Problems getting packing items externaly: ", ae);
         }
         catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
@@ -263,9 +268,9 @@ public class TripController {
             if (id > 0) {
                 TripDTO tripDTO = TripConverters.convertToTripDTO(tripDAO.getTripById(id));
                 category = tripDTO.getCategory();
-                PackingListDTO packingList = PackingService.getPackingList(category);
+                PackingListDTO packingList = PackingService.getPackingList(category.name().toLowerCase());
                 Integer total = PackingService.calcPackingTotalWeight(packingList);
-               // tripDTO.setPackingList(packingList);
+                tripDTO.setPackingList(packingList);
                 ctx.status(200).json(total);
             }
             else {
@@ -341,6 +346,4 @@ public class TripController {
             debugLogProd.debug(formattedTime, "unexpected error with the server trying to add guide to trip: ", e);
         }
     }
-
-
 }
