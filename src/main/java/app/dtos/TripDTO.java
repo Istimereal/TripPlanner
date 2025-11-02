@@ -23,7 +23,8 @@ public class TripDTO {
     private String locationCordinates;
     private double price;
     private Category category;
-    private Guide guide;
+    private Integer guideId;
+    private  Guide guide;
 
     public TripDTO(Trip trip) {
         this.id = trip.getId();
@@ -33,6 +34,8 @@ public class TripDTO {
         this.locationCordinates = trip.getLocationCordinates();
         this.price = trip.getPrice();
         this.category = trip.getCategory();
-        this.guide = trip.getGuide();
+        if(trip.getGuide() != null){
+            this.guide = trip.getGuide();
+        }
     }
 }

@@ -21,7 +21,7 @@ public class Role {
         this.roleName = roleName;
     }
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "role_user",
             joinColumns = @JoinColumn(name = "rolename"),
             inverseJoinColumns = @JoinColumn(name = "username"))

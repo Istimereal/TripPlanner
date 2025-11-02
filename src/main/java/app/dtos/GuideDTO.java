@@ -1,12 +1,10 @@
 package app.dtos;
 
 import app.entities.Guide;
-import jakarta.persistence.Entity;
 import lombok.*;
 
 @Setter
 @Getter
-@Entity
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

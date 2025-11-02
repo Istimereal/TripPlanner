@@ -71,5 +71,4 @@ public class SecurityDAO implements ISecurityDAO{
             return foundUser;
         }
     }
-
 }

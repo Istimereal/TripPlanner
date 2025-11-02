@@ -133,14 +133,14 @@ public class TripController {
                return;
            }
        }
-       TripDTO tripUpdate = ctx.bodyAsClass(TripDTO.class);
-       if(tripUpdate.getName() != null && tripUpdate.getName().isEmpty()) {
+       TripDTO tripUpdateDTO = ctx.bodyAsClass(TripDTO.class);
+       if(tripUpdateDTO.getName() != null && tripUpdateDTO.getName().isEmpty()) {
            throw new BadRequestResponse("Name cannot be empty, exclude or put desired name");
        }
-      if(tripUpdate.getLocationCordinates() != null && tripUpdate.getLocationCordinates().isEmpty()) {
+      if(tripUpdateDTO.getLocationCordinates() != null && tripUpdateDTO.getLocationCordinates().isEmpty()) {
           throw new BadRequestResponse("LocationCordinates cannot be empty, exclude or put desired cordinates");
       }
-      Trip forUpdate = TripConverters.convertToTrip(tripUpdate);
+      Trip forUpdate = TripConverters.convertToTrip(tripUpdateDTO);
      Trip updateResult =  tripDAO.updateTrip(id, forUpdate);
       TripDTO updated = TripConverters.convertToTripDTO(updateResult);
       ctx.status(HttpStatus.OK).json(updated);
@@ -233,7 +233,7 @@ public class TripController {
             debugLogger.debug(formattedTime, " Unexpected server while trying to get all trips", e);
         }
     }
-
+/*
     public void totalPriceTripsByGuide(Context ctx) {
         try{
             disableCache(ctx);
@@ -246,5 +246,5 @@ allGuides.get(0).getId()
             List<GuideTotalPriceTripsDTO> allGuideTotal = allGuides.forEach();
 
         }
-    }
+    }  */
 }

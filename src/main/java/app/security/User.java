@@ -24,7 +24,7 @@ public class User implements ISecurityUser{
 
     private String password;
 
-    @ManyToMany(mappedBy = "users")
+    @ManyToMany(mappedBy = "users", fetch = FetchType.EAGER)
     private Set<Role> roles = new HashSet<>();
 
     public User(String username, String password){
@@ -41,12 +41,11 @@ public class User implements ISecurityUser{
     @Override
     public void addRole(Role role) {
         roles.add(role);
-        // her kaldes IKKE role.getUsers().add(this); (kun den ene side opdateres)
+        role.getUsers().add(this);
     }
 
     @Override
     public void removeRole(Role role) {
         this.roles.remove(role);
-
     }
 }

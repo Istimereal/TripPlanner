@@ -1,6 +1,8 @@
 package app.daos;
 
+import app.dtos.GuideDTO;
 import app.entities.Guide;
+import app.entities.Trip;
 import app.exceptions.ApiException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
@@ -74,9 +76,10 @@ public class GuideDAO {
     }
 
     public Guide updateGuide(Integer integer, Guide guide) {
+Guide target;
 
         try(EntityManager em = emf.createEntityManager()) {
-           Guide target = em.find(Guide.class, integer);
+            target = em.find(Guide.class, integer);
            if(target == null) {
                throw new ApiException(400, "Guide with" + guide.getId() + "Does not exist");
            }
@@ -89,12 +92,13 @@ public class GuideDAO {
            if (guide.getPhoneNumber() != 0){
                target.setPhoneNumber(guide.getPhoneNumber());
            }
-           if(guide.getTrips() != null) {
-               target.setTrips(guide.getTrips());
+           if(guide.getExperienceInYears() != 0) {
+               target.setExperienceInYears(guide.getExperienceInYears());
            }
            em.getTransaction().begin();
            em.merge(target);
            em.getTransaction().commit();
+            return target;
         }
         catch (PersistenceException pe) {
             throw new ApiException(500, "Persistence error");
@@ -102,14 +106,18 @@ public class GuideDAO {
         catch (Exception e) {
             throw new ApiException(500, "unknown error");
         }
-        return guide;
     }
+
 
     public void deleteGuide(Integer integer) {
         try(EntityManager em = emf.createEntityManager()) {
             em.getTransaction().begin();
 
         Guide delete = em.find(Guide.class, integer);
+        for(Trip trip : delete.getTrips()) {
+            trip.setGuide(null);
+        }
+        delete.getTrips().clear();
             if(delete == null) {
                 throw new ApiException(400, "Guide with" + integer + "Does not exist");
             }

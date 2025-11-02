@@ -1,9 +1,8 @@
 package app.security;
 
-import app.dtos.AppUserDTO;
+//import app.dtos.AppUserDTO;
 import app.exceptions.NotAuthorizedException;
 import app.exceptions.ValidationException;
-import app.service.ConverterUser;
 import app.utils.Utils;
 import ch.qos.logback.core.subst.Token;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +11,7 @@ import dk.bugelhartmann.TokenSecurity;
 import dk.bugelhartmann.TokenVerificationException;
 import dk.bugelhartmann.UserDTO;
 import io.javalin.http.*;
+import io.javalin.security.RouteRole;
 import jakarta.persistence.EntityExistsException;
 
 import java.text.ParseException;
@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class SecurityController {
+public class SecurityController implements ISecurityController {
 
     private final SecurityDAO securityDAO;
     ObjectMapper objectMapper = new Utils().getObjectMapper();
@@ -29,21 +29,24 @@ public class SecurityController {
         this.securityDAO = securityDAO;
     }
 
+    @Override
     public Handler login(){
         return (Context ctx) -> {
 
             try {
-                System.out.println("login 1");
+
                 User user = ctx.bodyAsClass(User.class);
-                System.out.println("login 1.1");
+
                 User verifiedUser = securityDAO.getVerifiedUser(user.getUsername(), user.getPassword());
-                System.out.println("login 1.2");
-                UserDTO verifiedUserDTO = ConverterUser.convertUserToUserDTO(verifiedUser);
+                Set<String> stringRoles = verifiedUser.getRoles()
+                        .stream()
+                        .map(role->role.getRoleName())
+                        .collect(Collectors.toSet());
+                UserDTO verifiedUserDTO = new UserDTO(verifiedUser.getUsername(), stringRoles);
 
                 System.out.println("login 1.3 verifiedUserDTO username: " + verifiedUserDTO.getUsername());
                 System.out.println("login 1.3 verifiedUserDTO passsword: " + verifiedUserDTO.getPassword());
                 System.out.println("login 1.3 verifiedUserDTO roles: " + verifiedUserDTO.getRoles());
-
 
                 System.out.println("login 1.3");
                 String token = createToken(verifiedUserDTO);
@@ -62,37 +65,15 @@ public class SecurityController {
             }
         };
     }
-    /*
-    public Handler login(){
-        return (Context ctx) -> {
-
-            try {
-                User user = ctx.bodyAsClass(User.class);
-                User verifiedUser = securityDAO.getVerifiedUser(user.getId(), user.getPassword());
-                UserDTO verifiedUserDTO = ConverterUser.convertUserToUserDTO(verifiedUser);
-                String token = createToken(verifiedUserDTO);
-
-                ctx.status(HttpStatus.OK).json(Map.of("status", HttpStatus.OK.getCode(), "msg", "Succesfull login for user: "+verifiedUser.getUsername()));
-                ctx.attribute("userId", verifiedUser.getId());
-
-            } catch(ValidationException ex){
-                ObjectNode on = objectMapper.createObjectNode().put("msg","login failed. Wrong username or password");
-               ctx.status(HttpStatus.UNAUTHORIZED).json(Map.of("status", HttpStatus.UNAUTHORIZED.getCode(), "msg", "login failed. Wrong username or password"));
-                ctx.json(on).status(401);
-            }
-        };
-    }
-
-*/
 
     @Override
     public Handler register() {
         return ctx -> {
+            User user = ctx.bodyAsClass(User.class);
+            String username = user.getUsername();
+            String password = user.getPassword();
 
             try {
-                User user = ctx.bodyAsClass(User.class);
-                String username = user.getUsername();
-                String password = user.getPassword();
 
                 if(username.contains("admin")){
                     securityDAO.createUser(username, password);
@@ -102,7 +83,7 @@ public class SecurityController {
                     securityDAO.addUserRole(username, "User");
                 }
                 User verified = securityDAO.getVerifiedUser(username, password);
-
+                securityDAO.addUserRole(username, "Admin");
                 Set<String> stringRoles = verified.getRoles()
                         .stream()
                         .map(role->role.getRoleName())
@@ -122,10 +103,11 @@ public class SecurityController {
             }
         };
     }
+    @Override
+    public Handler authenticate() {
 
-    public void authenticate(Context ctx) {
-        // This is a preflight request => no need for authentication
-        try {
+        return (Context ctx) -> {
+            // This is a preflight request => no need for authentication
             if (ctx.method().toString().equals("OPTIONS")) {
                 ctx.status(200);
                 return;
@@ -138,12 +120,8 @@ public class SecurityController {
             // If there is no token we do not allow entry
             UserDTO verifiedTokenUser = validateAndGetUserFromToken(ctx);
             ctx.attribute("user", verifiedTokenUser); // -> ctx.attribute("user") in ApplicationConfig beforeMatched filter
-        }
-        catch (Exception e) {
-            ctx.status(500);
-        }
+        };
     }
-
     private UserDTO validateAndGetUserFromToken(Context ctx) throws Exception {
         try {
             String token = getToken(ctx);
@@ -184,26 +162,27 @@ public class SecurityController {
         }
         return false;
     }
+    @Override
+    public Handler authorize() {
+        return (Context ctx) -> {
+            Set<String> allowedRoles = ctx.routeRoles()
+                    .stream()
+                    .map(role -> role.toString().toUpperCase())
+                    .collect(Collectors.toSet());
 
-    public void authorize(Context ctx) {
-        Set<String> allowedRoles = ctx.routeRoles()
-                .stream()
-                .map(role -> role.toString().toUpperCase())
-                .collect(Collectors.toSet());
-
-        // 1. Check if the endpoint is open to all (either by not having any roles or having the ANYONE role set
-        if (isOpenEndpoint(allowedRoles))
-            return;
-        // 2. Get user and ensure it is not null
-        UserDTO user = ctx.attribute("user");
-        if (user == null) {
-            throw new ForbiddenResponse("No user was added from the token");
-        }
-        // 3. See if any role matches
-        if (!userHasAllowedRole(user, allowedRoles))
-            throw new ForbiddenResponse("User was not authorized with roles: " + user.getRoles() + ". Needed roles are: " + allowedRoles);
+            // 1. Check if the endpoint is open to all (either by not having any roles or having the ANYONE role set
+            if (isOpenEndpoint(allowedRoles))
+                return;
+            // 2. Get user and ensure it is not null
+            UserDTO user = ctx.attribute("user");
+            if (user == null) {
+                throw new ForbiddenResponse("No user was added from the token");
+            }
+            // 3. See if any role matches
+            if (!userHasAllowedRole(user, allowedRoles))
+                throw new ForbiddenResponse("User was not authorized with roles: " + user.getRoles() + ". Needed roles are: " + allowedRoles);
+        };
     }
-
     private static boolean userHasAllowedRole(UserDTO user, Set<String> allowedRoles) {
         return user.getRoles().stream()
                 .anyMatch(role -> allowedRoles.contains(role.toUpperCase()));
@@ -211,25 +190,27 @@ public class SecurityController {
 
     public String createToken(dk.bugelhartmann.UserDTO user) throws Exception {
         try {
+            System.out.println("createToken user: " + user.getUsername() + ", roles= " + user.getRoles());
+
+            System.out.println("1! createToken user ER" +  user.getUsername() + user.getPassword());
             String ISSUER;
             String TOKEN_EXPIRE_TIME;
             String SECRET_KEY;
-
-            System.out.println("Creating Token 1");
 
             if (System.getenv("DEPLOYED") != null) {
                 ISSUER = System.getenv("ISSUER");
                 TOKEN_EXPIRE_TIME = System.getenv("TOKEN_EXPIRE_TIME");
                 SECRET_KEY = System.getenv("SECRET_KEY");
 
-                System.out.println("Creating Token 1: deployed");
             } else {
 
                 System.out.println("createToken developer: 1 a.");
                 ISSUER = "Thomas Hartmann";
                 TOKEN_EXPIRE_TIME = "1800000";
                 SECRET_KEY = Utils.getPropertyValue("SECRET_KEY", "config.properties");
+                System.out.println("SECRET_KEY hentet = " + SECRET_KEY);
                 System.out.println("createToken developer: 1 B.");
+
             }
             System.out.println("Creating Token 2");
             String token = tokenSecurity.createToken(user, ISSUER, TOKEN_EXPIRE_TIME, SECRET_KEY);
@@ -240,7 +221,7 @@ public class SecurityController {
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Creating Token 1 c error");
-            throw new Exception("Could not create token", e);  // ✅ korrekt syntaks
+            throw new Exception("Could not create token", e);
         }
     }
 
@@ -268,6 +249,10 @@ public class SecurityController {
             System.out.println("login verifyToken : TokenVerificationException last ");
             throw new Exception("Unauthorized. Could not verify token", tve);
         }
+    }
+
+    public enum Role implements RouteRole {
+        ANYONE, USER, ADMIN;
     }
 }
 
