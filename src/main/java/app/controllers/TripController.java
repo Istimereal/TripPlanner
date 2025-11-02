@@ -3,7 +3,7 @@ package app.controllers;
 import app.daos.GuideDAO;
 import app.daos.TripDAO;
 import app.dtos.GuideDTO;
-import app.dtos.GuideTotalPriceTripsDTO;
+import app.dtos.GuidesTripsTotPriceDTO;
 import app.dtos.TripDTO;
 import app.entities.Trip;
 import app.enums.Category;
@@ -23,8 +23,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static app.utils.ResponseUtil.disableCache;
+import static java.util.stream.Collectors.toList;
 
 public class TripController {
     LocalDateTime timeStamp = LocalDateTime.now();
@@ -32,37 +34,52 @@ public class TripController {
     String formattedTime = timeStamp.format(formatter);
 
     private static final Logger logger = LoggerFactory.getLogger("pruduction");
-    private static final Logger debugLogger = LoggerFactory.getLogger("debug");
+    private static final Logger debugLogProd = LoggerFactory.getLogger("debug");
     private final TripDAO tripDAO;
-    private final GuideDAO guideDAO;
 
-    public TripController(TripDAO tripDAO, GuideDAO guideDAO) {
+
+    public TripController(TripDAO tripDAO) {
         this.tripDAO = tripDAO;
-        this.guideDAO = guideDAO;
     }
 
-    public void getAllTrips(Context ctx) {
+      public void getTrips(Context ctx) {
         try {
+            Category category;
             disableCache(ctx);
-            List<TripDTO> tripDTOs = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
-            if(tripDTOs.isEmpty()) {
-                ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status",HttpStatus.NOT_FOUND.getCode(),"message", "No trips in database"));
-                logger.warn("No trips in database");
+
+            String request = ctx.queryParam("category");
+
+            if(request != null && !request.isEmpty()) {
+
+                category = Category.valueOf(request.toUpperCase());
+                List<TripDTO> allTrips = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
+                List<TripDTO> sortedTrips = allTrips.stream()
+                        .filter( trip -> trip.getCategory().equals(category))
+                        .toList();
+
+                ctx.status(HttpStatus.OK).json(sortedTrips);
             }
-            else {
-                ctx.status(200).json(tripDTOs);
+            else
+            {
+                List<TripDTO> tripDTOs = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
+                if (tripDTOs.isEmpty()) {
+                    ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(), "message", "No trips in database"));
+                    logger.warn("No trips in database");
+                } else {
+                    ctx.status(200).json(tripDTOs);
+                }
             }
         }
         catch (PersistenceException pe) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "message", "Database problems, try agian later"));
-            debugLogger.error(formattedTime + " Database  persistence error", pe);
+            debugLogProd.error(formattedTime + " Database  persistence error", pe);
         }
         catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
                     HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg",
                     "There was an unexpected error with the server, try again later"));
-            debugLogger.debug(formattedTime, "unexpected error with the server ", e);
+            debugLogProd.debug(formattedTime, "unexpected error with the server ", e);
         }
     }
 
@@ -86,13 +103,13 @@ public class TripController {
         catch (PersistenceException pe) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg","Database problems, try agian later"));
-            debugLogger.debug(formattedTime, "Error with database trying to find Trip by Id: " + id + " ", pe);
+            debugLogProd.debug(formattedTime, "Error with database trying to find Trip by Id: " + id + " ", pe);
         }
         catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
                     HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg",
                     "There was an unexpected error with the server, try again later"));
-            debugLogger.debug(formattedTime, "unexpected error with the server trying to find trip by ID: ", e);
+            debugLogProd.debug(formattedTime, "unexpected error with the server trying to find trip by ID: ", e);
         }
     }
 
@@ -111,12 +128,12 @@ public class TripController {
         catch (PersistenceException pe){
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg","Database problems, try agian later"));
-            debugLogger.error(formattedTime, "Database problems while creation a trip", pe);
+            debugLogProd.error(formattedTime, "Database problems while creation a trip", pe);
         }
         catch(Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg", "There was an unexpected problem with the server"));
-            debugLogger.error(formattedTime, "Unexpected server problem while creating a trip", e);
+            debugLogProd.error(formattedTime, "Unexpected server problem while creating a trip", e);
         }
     }
 
@@ -150,7 +167,7 @@ public class TripController {
        String message;
 
        if (bre.getMessage() == null || bre.getMessage().isBlank()) {
-           // A: JSON-formatfejl (bodyAsClass fejlede)
+
            message = "trip with id: " + ctx.pathParam("id") +
                    " was not in valid JSON format. See API documentation for correct structure.";
        } else {
@@ -160,11 +177,11 @@ public class TripController {
    }
    catch (PersistenceException pe) {
        ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Database problems, try again later"));
-       debugLogger.debug(formattedTime + "; Database error trying to update trip", pe);
+       debugLogProd.debug(formattedTime + "; Database error trying to update trip", pe);
    }
    catch (Exception e) {
        ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Unexpected error updating trip" + ctx.pathParam("id")));
-       debugLogger.debug(formattedTime + "; Unexpected error trying to update trip:" + id + "OperationState: ", e);
+       debugLogProd.debug(formattedTime + "; Unexpected error trying to update trip:" + id + "OperationState: ", e);
    }
     }
 
@@ -191,28 +208,28 @@ public class TripController {
         catch (PersistenceException pe) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg", "There was a problem with the database"));
-            debugLogger.debug(formattedTime + "; Database problems while trying to delete Trip with Id: " + id, pe);
+            debugLogProd.debug(formattedTime + "; Database problems while trying to delete Trip with Id: " + id, pe);
         }
         catch(Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg", "There was an unexpected server error with the server"));
-            debugLogger.debug(formattedTime + "; Unexpected server while trying to delete Trip with Id: " + id, e);
+            debugLogProd.debug(formattedTime + "; Unexpected server while trying to delete Trip with Id: " + id, e);
         }
     }
 
     public void getTripsByCategory(Context ctx) {
         Category category;
         try {
-           String request = ctx.pathParam("category");
+           String request = ctx.queryParam("category");
            if(request != null && !request.isEmpty()) {
 
     category = Category.valueOf(request.toUpperCase());
                List<TripDTO> allTrips = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
-               allTrips.stream()
+          List<TripDTO> sortedTrips = allTrips.stream()
                        .filter( trip -> trip.getCategory().equals(category))
                        .toList();
 
-               ctx.status(HttpStatus.OK).json(allTrips);
+               ctx.status(HttpStatus.OK).json(sortedTrips);
                }
         else{
             throw new BadRequestResponse("Selected category ned to be BEACH, CITY, FOREST, LAKE, SEA or SNOW");
@@ -225,26 +242,43 @@ public class TripController {
         catch (PersistenceException pe) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg",  "Database problems, try again later"));
-            debugLogger.error(formattedTime, "Database problems while getting all trips", pe);
+            debugLogProd.error(formattedTime, "Database problems while getting all trips", pe);
         }
         catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
                     "msg", "There was an unexpected server error with the server"));
-            debugLogger.debug(formattedTime, " Unexpected server while trying to get all trips", e);
+            debugLogProd.debug(formattedTime, " Unexpected server while trying to get all trips", e);
         }
     }
-/*
+
     public void totalPriceTripsByGuide(Context ctx) {
         try{
             disableCache(ctx);
 
             List<TripDTO> allTrips = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
-            List<GuideDTO> allGuides = GuideConverters.convertToGuideDTO(guideDAO.getAllGuides());
-allGuides.get(0).getId()
-            allGuides.forEach(g -> g.getId());
-            allTrips.forEach(g, t -> g.getTr t.getPrice());
-            List<GuideTotalPriceTripsDTO> allGuideTotal = allGuides.forEach();
+
+               Map<Integer, Double> totalPrices = allTrips.stream()
+               .collect(Collectors.groupingBy(TripDTO::getGuideId, Collectors.summingDouble(TripDTO::getPrice)));
+
+               ctx.status(HttpStatus.OK).json(totalPrices);
 
         }
-    }  */
+        catch (PersistenceException pe){
+
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                    "msg",  "Database problems, try again later"));
+            debugLogProd.error(formattedTime, "Database problems while calculating price for trips for each guide", pe);
+        }
+        catch (NullPointerException npe) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                    "msg",  "Database problems, try again later"));
+            debugLogProd.error(formattedTime, "Database problems while calculating price for trips on guide, no list of Trips", npe);
+        }
+        catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                    "msg",  "Database problems, try again later"));
+            debugLogProd.error(formattedTime, "Unexpected error while calculating price for trips on guide, no list of Trips", e);
+        }
+
+    }
 }
