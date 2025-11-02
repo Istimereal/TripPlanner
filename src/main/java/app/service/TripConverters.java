@@ -14,8 +14,11 @@ public class TripConverters {
                 .endTime(trip.getEndTime())
                 .locationCordinates(trip.getLocationCordinates())
                 .price(trip.getPrice())
-                .category(trip.getCategory())
-                .guide(trip.getGuide());
+                .category(trip.getCategory());
+        if (trip.getGuide() != null) {
+          Integer guideId = trip.getGuide().getId();
+          builder.guideId(guideId);
+        }
         if (trip.getId() > 0) {
             builder.id(trip.getId());
         }
@@ -23,16 +26,27 @@ public class TripConverters {
     }
 
     public static Trip convertToTrip(TripDTO tripDTO) {
-        Trip.TripBuilder builder = Trip.builder()
-                .name(tripDTO.getName())
-                .startTime(tripDTO.getStartTime())
-                .endTime(tripDTO.getEndTime())
-                .locationCordinates(tripDTO.getLocationCordinates())
-                .price(tripDTO.getPrice())
-                .category(tripDTO.getCategory())
-                .guide(tripDTO.getGuide());
+        Trip.TripBuilder builder = Trip.builder();
         if (tripDTO.getId() > 0) {
             builder.id(tripDTO.getId());
+        }
+        if (tripDTO.getName() != null) {
+                builder.name(tripDTO.getName());
+        }
+        if (tripDTO.getStartTime() != null) {
+            builder.startTime(tripDTO.getStartTime());
+        }
+        if (tripDTO.getEndTime() != null) {
+            builder.endTime(tripDTO.getEndTime());
+        }
+        if (tripDTO.getLocationCordinates() != null) {
+            builder.locationCordinates(tripDTO.getLocationCordinates());
+        }
+        if(tripDTO.getPrice() != 0){
+            builder.price(tripDTO.getPrice());
+        }
+        if (tripDTO.getCategory() != null) {
+            builder.category(tripDTO.getCategory());
         }
         return builder.build();
     }

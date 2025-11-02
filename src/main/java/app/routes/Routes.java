@@ -1,22 +1,26 @@
 package app.routes;
 
+import app.controllers.GuideController;
+import app.controllers.TripController;
 import io.javalin.apibuilder.EndpointGroup;
 
-import static io.javalin.apibuilder.ApiBuilder.get;
-import static io.javalin.apibuilder.ApiBuilder.path;
+import static io.javalin.apibuilder.ApiBuilder.*;
 
 public class Routes {
- //   private final PoemRoutes poemRoutes;
 
- /*   public Routes(PoemRoutes poemRoutes) {
-        this.poemRoutes = poemRoutes;
-    } */
+    private final GuideRoutes guideRoutes;
+    private final TripRoutes tripRoutes;
 
-  /*  public EndpointGroup getRoutes(){
+    public Routes(GuideRoutes  guideRoutes, TripRoutes tripRoutes) {
+        this.guideRoutes = guideRoutes;
+        this.tripRoutes = tripRoutes;
+    }
+
+    public EndpointGroup getEndpoints() {
 
         return () -> {
-            get("/", ctx -> ctx.result("Hello World"));
-            path("/poem", poemRoutes.getRoutes());
+            path("/guides", guideRoutes.getGuideRoutes());
+            path("/trips", tripRoutes.getTripRoutes());
         };
-    }  */
+    }
 }

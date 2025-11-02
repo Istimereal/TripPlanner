@@ -1,6 +1,7 @@
 package app.entities;
 
 import app.enums.Category;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 
 @Setter
 @Getter
+@EqualsAndHashCode
 @Entity
 @Builder
 @AllArgsConstructor
@@ -25,15 +27,15 @@ public class Trip {
     @Column(name = "name", nullable = false)
     String name;
 
-    @Column(name =  "startTime", nullable = false)
-    @JsonFormat(pattern = "yyyy-mm-dd hh:mm")
+    @Column(name =  "start_time", nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     private LocalDateTime startTime;
 
-    @Column(name =  "endTime", nullable = false)
-    @JsonFormat(pattern = "yyyy-mm-dd hh:mm")
+    @Column(name =  "end_time", nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     private LocalDateTime endTime;
 
-    @Column(name =  "locationCordinates", nullable = false)
+    @Column(name =  "location_cordinates", nullable = false)
     private String locationCordinates;
 
     @Column( name = "price", nullable = false)
@@ -44,6 +46,7 @@ public class Trip {
 
     @ManyToOne
     @JoinColumn(name = "guide_id")
+    @JsonBackReference
     private Guide guide;
 
 }
