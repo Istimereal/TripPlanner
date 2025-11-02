@@ -24,8 +24,6 @@ public GuideRoutes(GuideController guideController) {
             // GET /guides/{id}
             get("/{id}", guideController::getGuideById, Role.ADMIN, Role.USER);
 
-            // POST /guides
-            post("/", guideController::createGuide, Role.ADMIN);
 
             // PUT /guides/{id}
             put("/{id}", guideController::updateGuide, Role.ADMIN);

@@ -26,6 +26,8 @@ public class TripDTO {
     private Integer guideId;
     private  Guide guide;
 
+    private PackingListDTO packingList;
+
     public TripDTO(Trip trip) {
         this.id = trip.getId();
         this.name = trip.getName();
