@@ -106,8 +106,8 @@ public class TripController {
             }
         }
         catch (NumberFormatException ne) {
-            ctx.json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
-                    "Invalid id format:" + ctx.pathParam("id")));
+            ctx.status(HttpStatus.BAD_REQUEST.getCode()).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
+                    "Invalid id format: " + ctx.pathParam("id")));
         }
         catch (ApiException ae) {
             int code = ae.getStatusCode();
@@ -280,7 +280,7 @@ public class TripController {
                 ctx.status(200).json(Map.of("status", HttpStatus.OK.getCode(),"msg","Weight in grams: " + total));
             }
             else {
-                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"message", "You need to type at id above 0"));
+                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"msg", "You need to type at id above 0"));
             }
         }
         catch(BadRequestResponse bre) {
@@ -296,6 +296,10 @@ public class TripController {
             }
             ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg", message));
         }
+        catch (NumberFormatException nfe){
+            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
+                    "You need to type Id format correct, like: 1"));
+        }
         catch (ApiException ae) {
             int code = ae.getStatusCode();
             String msg = "";
@@ -310,7 +314,8 @@ public class TripController {
             debugLogProd.error(formattedTime, debugMsg, ae);
         }
         catch (Exception e) {
-            ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Unexpected error updating trip" + ctx.pathParam("id")));
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR.getCode()).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                    "msg", "Unexpected error updating trip" + ctx.pathParam("id")));
             debugLogProd.debug(formattedTime + "; Unexpected error deliver packaging weight", e);
         }
     }

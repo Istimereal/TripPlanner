@@ -3,6 +3,7 @@ package app.controllers;
 import app.config.ApplicationConfig;
 import app.config.HibernateConfig;
 import app.enums.Category;
+import app.service.ApiService;
 import app.service.Populator;
 import io.javalin.Javalin;
 import io.javalin.http.ContentType;
@@ -33,7 +34,6 @@ class TripControllerTest {
         app = ApplicationConfig.startServer(7082, emfTest);
         RestAssured.baseURI = "http://localhost:7082/api/v1";
     }
-
 
     @BeforeEach
     void resetDB() {
@@ -132,6 +132,23 @@ class TripControllerTest {
     }
 
     @Test
+    @DisplayName("Wrong id type FAIL")
+    void wronGetTripById() {
+//arrange done in @beforeAll
+        //Act
+        given()
+        .header("Authorization", "Bearer " + adminToken)
+                .contentType(ContentType.JSON)
+                .when()
+                .get("/trips/F")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("msg", equalTo("Invalid id format: F"));
+    }
+
+
+    @Test
     void createTrip() {
 
         //Arrange
@@ -166,6 +183,34 @@ class TripControllerTest {
     }
 
     @Test
+    @DisplayName("Create trip FAIL because of wrong json")
+    void createTripWrongJson() {
+        //Arrange
+        String Json = """
+                
+                
+                "name": "Beach trip",
+                 "startTime": "2025-11-01T09:00",
+                 "endTime": "2025-11-01T17:00",
+                 "locationCordinates": "57.048",
+                 "price": 5000,
+                 "category": "BEACH"
+                 }
+                """;
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(ContentType.JSON)
+                .body(Json)
+                .when()
+                .post("/trips")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("msg", equalTo("Invalid post, see documentation for correct form"));
+    }
+
+    @Test
     void updateTrip() {
         //Arrange
         String json = """
@@ -187,7 +232,6 @@ class TripControllerTest {
                 .body("locationCordinates", equalTo("10.103.23"))
                 .body("price", equalTo(6000.0F))
                 .body("category", equalTo("LAKE"));
-
     }
 
     @Test
@@ -244,6 +288,23 @@ class TripControllerTest {
     }
 
     @Test
+    @DisplayName("Packing weight FAIL")
+    void getPackingWeightWrongIdType() {
+        //Arrange in BeforeAll
+//Act Assert
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(ContentType.JSON)
+                .when()
+                .get("/trips/F/packing/weight")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("msg", equalTo("You need to type Id format correct, like: 1"));
+        // NB: Denne test kræver at du tilføjer en catch(NumberFormatException) i getPackingWeight, hvor du sætter status 400 + samme besked.
+    }
+
+    @Test
     @DisplayName("Make a trip hve a guide SUCCES")
     void linkGuideToTrip() {
         //Arrange in before All
@@ -258,4 +319,6 @@ class TripControllerTest {
                 .body("status", equalTo(200))
                 .body("msg", equalTo("Guide have been added"));
     }
+
+
 }
