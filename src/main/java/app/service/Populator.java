@@ -11,6 +11,7 @@ import jakarta.persistence.EntityManagerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,9 +54,9 @@ public class Populator {
             em.createQuery("DELETE FROM Role").executeUpdate();
             em.createQuery("DELETE FROM User").executeUpdate();
 
-            Role adminRole = new Role("Admin");
-            Role userRole = new Role("User");
-            Role anyRole = new Role("Anyone");
+            Role adminRole = new Role("ADMIN");
+            Role userRole = new Role("USER");
+            Role anyRole = new Role("ANYONE");
             em.persist(adminRole);
             em.persist(userRole);
             em.persist(anyRole);
@@ -95,9 +96,11 @@ em.getTransaction().begin();
                     .build();
 
             LocalDateTime start1 = LocalDateTime.of(2025, 11, 10, 8, 30);
-            LocalDateTime start2 = LocalDateTime.of(2025, 11, 18, 8, 30);
             LocalDateTime end1 = LocalDateTime.of(2025, 11, 14, 8, 30);
-            LocalDateTime end2 = LocalDateTime.of(2025, 1, 24, 8, 30);
+
+            LocalDateTime start2 = LocalDateTime.of(2025, 11, 18, 8, 30);
+            LocalDateTime end2 = LocalDateTime.of(2025, 11, 24, 8, 30);
+
             Category category1 = LAKE;
             Category cat2 = BEACH;
 
@@ -111,15 +114,12 @@ em.getTransaction().begin();
                     .build();
             Trip t2 = Trip.builder()
                     .name("tenerife")
-                    .startTime(start1)
-                    .endTime(end1)
+                    .startTime(start2)
+                    .endTime(end2)
                     .locationCordinates("10.103.25")
                     .price(7000)
                     .category(cat2)
                     .build();
-
-            em.persist(t1);
-            em.persist(t2);
 
             g1.addTrip(t1);
             g2.addTrip(t2);
@@ -132,6 +132,23 @@ em.getTransaction().begin();
         try (EntityManager em = emf.createEntityManager()) {
             List<Guide> guides = em.createQuery("SELECT g FROM Guide g", Guide.class).getResultList();
             System.out.println("Guides in DB: " + guides.size());
+        }
+    }
+
+    public void poppulateDBTestSecurity(){
+        try (EntityManager em = emf.createEntityManager()) {
+            em.getTransaction().begin();
+            Role adminRole = new Role("Admin");
+            Role userRole = new Role("User");
+            Role anyRole = new Role("Anyone");
+            em.persist(adminRole);
+            em.persist(userRole);
+            em.persist(anyRole);
+            em.getTransaction().commit();
+            System.out.println("Roles created successfully!");
+        }
+        catch (Exception e) {
+            System.out.println("Exception in poppulateDBTestSecurity: " + e.getMessage());
         }
     }
 }

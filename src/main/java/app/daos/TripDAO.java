@@ -26,26 +26,6 @@ public class TripDAO {
         return instance;
     }
 
-    public Trip createTrip(Trip trip) {
-        EntityManager em = emf.createEntityManager();
-        try{
-            em.getTransaction().begin();
-            em.persist(trip);
-            em.getTransaction().commit();
-        }
-        catch (PersistenceException pe){
-            if (em.getTransaction().isActive()){
-                em.getTransaction().rollback();}
-            throw new ApiException(500,"Persistence error");
-        }
-        catch (Exception ex){
-            if (em.getTransaction().isActive()){
-                em.getTransaction().rollback();}
-            throw new ApiException(500, "unexpected error");
-        }
-        return trip;
-    }
-
     public Trip getTripById(int id) {
         try(EntityManager em=emf.createEntityManager()){
             Trip found =em.find(Trip.class, id);
@@ -72,10 +52,34 @@ public class TripDAO {
         }
     }
 
+    public Trip createTrip(Trip trip) {
+        EntityManager em = emf.createEntityManager();
+        try{
+            em.getTransaction().begin();
+            em.persist(trip);
+            em.getTransaction().commit();
+        }
+        catch (PersistenceException pe){
+            if (em.getTransaction().isActive()){
+                em.getTransaction().rollback();}
+            throw new ApiException(500,"Persistence error");
+        }
+        catch (Exception ex){
+            if (em.getTransaction().isActive()){
+                em.getTransaction().rollback();}
+            throw new ApiException(500, "unexpected error");
+        }
+        finally{
+            em.close();
+        }
+        return trip;
+    }
+
     public Trip updateTrip(Integer integer, Trip trip){
         EntityManager em=emf.createEntityManager();
 
         try{
+            em.getTransaction().begin();
             Trip target = em.find(Trip.class, integer);
             if(target == null){
                throw new ApiException(404,"Trip with id "+integer+" not found");
@@ -101,7 +105,7 @@ public class TripDAO {
             if(trip.getGuide()!=null){
                 target.setGuide(trip.getGuide());
             }
-            em.getTransaction().begin();
+
             em.merge(target);
             em.getTransaction().commit();
             return target;
@@ -166,7 +170,7 @@ public void addGuideToTrip(Integer tripId, Integer guideId ){
       catch (PersistenceException pe){
           if (em.getTransaction().isActive()){
               em.getTransaction().rollback();}
-          throw new ApiException(500,"Persistence error addind Guide to trip:");
+          throw new ApiException(500,"Persistence error adding Guide to trip:");
       }
       catch (Exception ex){
           if (em.getTransaction().isActive()){

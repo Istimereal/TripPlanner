@@ -28,7 +28,7 @@ public class GuideController {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     String formattedTime = timeStamp.format(formatter);
 
-    private static final Logger logger = LoggerFactory.getLogger("pruduction");
+    private static final Logger logger = LoggerFactory.getLogger("production");
     private static final Logger debugLogProd = LoggerFactory.getLogger("debug");
     private final GuideDAO guideDAO;
 
@@ -51,10 +51,11 @@ public class GuideController {
                     json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(),
                             "msg", "Invalid post, see documentation for correct form"));
         }
-        catch (PersistenceException pe){
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+        catch (ApiException ae){
+            int code = ae.getStatusCode();
+            ctx.status(code).json(Map.of("status", code,
                     "msg","Database problems, try agian later"));
-            debugLogProd.error(formattedTime, "Database problems while creation a Guide", pe);
+            debugLogProd.debug(formattedTime, "Error with database trying to create guide", ae);
         }
         catch(Exception e) {
             if (
@@ -72,22 +73,25 @@ public class GuideController {
             }}
     }
 
-public void geAlltGuides(Context ctx){
+public void geAllGuides(Context ctx){
     try {
         disableCache(ctx);
         List<GuideDTO> guideDTOs = GuideConverters.convertToGuideDTO(guideDAO.getAllGuides());
         if(guideDTOs.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status",HttpStatus.NOT_FOUND.getCode(),"message", "No Guides in database"));
+            ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status",HttpStatus.NOT_FOUND.getCode(),
+                    "msg", "No Guides in database"));
             logger.warn("No Guides in database");
         }
         else {
             ctx.status(200).json(guideDTOs);
         }
     }
-    catch (PersistenceException pe) {
-        ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                "message", "Database problems, try agian later"));
-        debugLogProd.error(formattedTime + " Database  persistence error while persisting new guide", pe);
+    catch (ApiException ae){
+        int code = ae.getStatusCode();
+        ctx.status(code).json(Map.of("status", code,
+                "msg","Database problems, try agian later"));
+        debugLogProd.debug(formattedTime, "Error with database trying to get all guides", ae);
+
     }
     catch (Exception e) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
@@ -107,17 +111,19 @@ public  void getGuideById(Context ctx){
             ctx.status(200).json(GuideDTO);
         }
         else {
-            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"message", "You need to type at id above 0"));
+            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),
+                    "msg", "You need to type at id above 0"));
         }
     }
     catch (NumberFormatException ne) {
         ctx.json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
                 "Invalid id format:" + ctx.pathParam("id")));
     }
-    catch (PersistenceException pe) {
-        ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+    catch (ApiException ae){
+        int code = ae.getStatusCode();
+        ctx.status(code).json(Map.of("status", code,
                 "msg","Database problems, try agian later"));
-        debugLogProd.debug(formattedTime, "Error with database trying to find Guide by Id: " + id + " ", pe);
+        debugLogProd.debug(formattedTime, "Error with database trying to find Guide by Id: " + id + " ", ae);
     }
     catch (Exception e) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
@@ -126,6 +132,7 @@ public  void getGuideById(Context ctx){
         debugLogProd.debug(formattedTime, "unexpected error with the server trying to find Guide by ID: ", e);
     }
 }
+
 public void updateGuide(Context ctx){
 
     int id = 0;
@@ -136,7 +143,7 @@ public void updateGuide(Context ctx){
 
             if (guide == null) {
                 ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(),
-                        "message", "Guide not found"));
+                        "msg", "Guide not found"));
                 return;
             }
         }
@@ -153,21 +160,20 @@ public void updateGuide(Context ctx){
         ctx.status(HttpStatus.OK).json(updated);
     }
     catch(BadRequestResponse bre) {
-
         String message;
 
         if (bre.getMessage() == null || bre.getMessage().isBlank()) {
             // A: JSON-formatfejl (bodyAsClass fejlede)
             message = "Guide with id: " + ctx.pathParam("id") +
                     " was not in valid JSON format. See API documentation for correct structure.";
-        } else {
-            message = bre.getMessage();
-        }
+        } else { message = bre.getMessage(); }
         ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg", message));
     }
-    catch (PersistenceException pe) {
-        ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Database problems, try again later"));
-        debugLogProd.debug(formattedTime + "; Database error trying to update Guide", pe);
+    catch (ApiException ae){
+        int code = ae.getStatusCode();
+        ctx.status(code).json(Map.of("status", code,
+                "msg","Database problems, try agian later"));
+        debugLogProd.debug(formattedTime, "Error with database trying to trying to update Guide: " + id + " ", ae);
     }
     catch (Exception e) {
         ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Unexpected error updating Guide" + ctx.pathParam("id")));
@@ -182,24 +188,21 @@ public void deleteGuide(Context ctx){
         id = Integer.parseInt(ctx.pathParam("id"));
         if (id > 0) {
             guideDAO.deleteGuide(id);
-            ctx.json(Map.of("status", HttpStatus.OK.getCode(), "message", "Guide deleted"));
+            ctx.json(Map.of("status", HttpStatus.OK.getCode(), "msg", "Guide deleted"));
         }
         else {
-            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"message", "You need to type at id above 0"));
+            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"msg", "You need to type at id above 0"));
         }
     }
     catch (NumberFormatException ne) {
         ctx.json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
                 "Invalid id format:" + ctx.pathParam("id")));
     }
-    catch (ApiException ex){
-        ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status",  HttpStatus.NOT_FOUND.getCode(),
-                "message", "Guide with id: " + id + " Was not found"));
-    }
-    catch (PersistenceException pe) {
-        ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                "msg", "There was a problem with the database"));
-        debugLogProd.debug(formattedTime + "; Database problems while trying to delete Guide with Id: " + id, pe);
+    catch (ApiException ae){
+        int code = ae.getStatusCode();
+        ctx.status(code).json(Map.of("status", code,
+                "msg","Database problems, try agian later"));
+        debugLogProd.debug(formattedTime, "Error with database trying to trying to delete Guide: " + id + " ", ae);
     }
     catch(Exception e) {
         ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),

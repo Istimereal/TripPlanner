@@ -15,7 +15,6 @@ import java.util.Set;
 @Setter
 @Getter
 @Entity
-@NoArgsConstructor
 @Table(name="users")
 public class User implements ISecurityUser{
     @Id
@@ -27,8 +26,10 @@ public class User implements ISecurityUser{
     @ManyToMany(mappedBy = "users", fetch = FetchType.EAGER)
     private Set<Role> roles = new HashSet<>();
 
+    public User() { }
+
     public User(String username, String password){
-        this.username = username;
+        this.username = username.toLowerCase();
         String hashed = BCrypt.hashpw(password, BCrypt.gensalt());
         this.password = hashed;
     }

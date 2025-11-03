@@ -43,46 +43,54 @@ class GuideControllerTest {
     }
 
     @BeforeEach
-    public void deleteDB() {
+    public void deleteAndInitializeDB() {
 
         try (EntityManager em = emfTest.createEntityManager()) {
 
             em.getTransaction().begin();
-            em.createNativeQuery("TRUNCATE TABLE guide RESTART identity CASCADE").executeUpdate();
             em.createNativeQuery("TRUNCATE TABLE guide RESTART IDENTITY CASCADE").executeUpdate();
+            em.createNativeQuery("TRUNCATE TABLE role_user RESTART IDENTITY CASCADE").executeUpdate();
+            em.createNativeQuery("TRUNCATE TABLE users RESTART IDENTITY CASCADE").executeUpdate();
+            em.createNativeQuery("TRUNCATE TABLE role RESTART IDENTITY CASCADE").executeUpdate();
             em.getTransaction().commit();
 
             Populator populator = new Populator(emfTest);
-
             populator.createUsersAndRolesTest();
             populator.poppulateDBTest();
 
             guideList = guideDAO.getAllGuides();
-
             g1 = guideList.get(0);
             g2 = guideList.get(1);
 
+            // 🔹 Login for at få token (OBLIGATORISK før GET /guides)
             String loginJson = """
-                    {
-                      "username": "admin",
-                      "password": "admin123"
-                    }
-                    """;
+                {
+                  "username": "admin",
+                  "password": "admin123"
+                }
+                """;
 
-            adminToken =
-                    given()
-                            .contentType("application/json")
-                            .body(loginJson)
-                            .when()
-                            .post("/auth/login")   // ikke en test — bare setup
-                            .then()
-                            .statusCode(200)
-                            .extract()
-                            .path("token");
+            adminToken = given()
+                    .contentType("application/json")
+                    .body(loginJson)
+                    .when()
+                    .post("/auth/login")
+                    .then()
+                    .statusCode(200)
+                    .extract()
+                    .path("token");
+
+            System.out.println("Admin token hentet til test: " + adminToken);
         }
-        catch(Exception e){
+        catch (Exception e) {
             throw new RuntimeException("failed to TRUNCATE table and populate", e);
         }
+    }
+
+
+    @AfterAll
+    static void stopServer() {
+        if (app != null) app.stop();
     }
 
     @Test
@@ -244,6 +252,6 @@ class GuideControllerTest {
                 .then()
                 .statusCode(200)
                 .body("status", equalTo(200))
-                .body("message", equalTo("Guide deleted"));
+                .body("msg", equalTo("Guide deleted"));
     }
 }

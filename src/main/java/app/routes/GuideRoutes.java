@@ -19,12 +19,12 @@ public GuideRoutes(GuideController guideController) {
     public EndpointGroup getGuideRoutes() {
         return () -> {
             // GET /guides
-            get("/", guideController::geAlltGuides, Role.ADMIN, Role.USER);
+            get("/", guideController::geAllGuides, Role.ADMIN, Role.USER);
 
             // GET /guides/{id}
             get("/{id}", guideController::getGuideById, Role.ADMIN, Role.USER);
 
-
+            post("/", guideController::createGuide, Role.ADMIN);
             // PUT /guides/{id}
             put("/{id}", guideController::updateGuide, Role.ADMIN);
 

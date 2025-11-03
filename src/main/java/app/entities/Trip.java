@@ -28,11 +28,11 @@ public class Trip {
     String name;
 
     @Column(name =  "start_time", nullable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+  //  @JsonFormat(pattern = "yyyy-MM-ddHH:mm")
     private LocalDateTime startTime;
 
     @Column(name =  "end_time", nullable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+  //  @JsonFormat(pattern = "yyyy-MM-ddHH:mm")
     private LocalDateTime endTime;
 
     @Column(name =  "location_cordinates", nullable = false)
