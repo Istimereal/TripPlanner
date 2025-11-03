@@ -137,15 +137,16 @@ Guide target;
             em.getTransaction().begin();
 
         Guide delete = em.find(Guide.class, integer);
-        for(Trip trip : delete.getTrips()) {
-            trip.setGuide(null);
-        }
-        delete.getTrips().clear();
             if(delete == null) {
                 if (em.getTransaction().isActive()){
                     em.getTransaction().rollback();}
                 throw new ApiException(404, "Guide with" + integer + "Does not exist");
             }
+        for(Trip trip : delete.getTrips()) {
+            trip.setGuide(null);
+        }
+            delete.getTrips().clear();
+
             em.remove(delete);
             em.getTransaction().commit();
         }

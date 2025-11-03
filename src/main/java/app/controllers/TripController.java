@@ -1,25 +1,24 @@
 package app.controllers;
 
-import app.daos.GuideDAO;
 import app.daos.TripDAO;
-import app.dtos.GuideDTO;
 import app.dtos.PackingListDTO;
 import app.dtos.TripDTO;
 import app.entities.Trip;
 import app.enums.Category;
 import app.exceptions.ApiException;
-import app.service.GuideConverters;
 import app.service.PackingService;
 import app.service.TripConverters;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import jakarta.persistence.PersistenceException;
+import org.hibernate.dialect.function.DB2SubstringFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,15 +39,21 @@ public class TripController {
     }
 
       public void getTrips(Context ctx) {
-        try {
-            Category category;
+
+       Category category;
+          try {
             disableCache(ctx);
 
             String request = ctx.queryParam("category");
 
             if(request != null && !request.isEmpty()) {
-
-                category = Category.valueOf(request.toUpperCase());
+                try {
+                    category = Category.valueOf(request.toUpperCase());
+                } catch (IllegalArgumentException iae) {
+                    ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(),
+                            "msg", "Invalid category. Valid categories are: beach, city, forest, lake, sea, snow"));
+                    return;
+                }
                 List<TripDTO> allTrips = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
                 List<TripDTO> sortedTrips = allTrips.stream()
                         .filter( trip -> trip.getCategory().equals(category))
@@ -60,18 +65,19 @@ public class TripController {
             {
                 List<TripDTO> tripDTOs = TripConverters.convertToTripDTOList(tripDAO.getAllTrips());
                 if (tripDTOs.isEmpty()) {
-                    ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(), "message", "No trips in database"));
+                    ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(), "msg", "No trips in database"));
                     logger.warn("No trips in database");
                 } else {
                     ctx.status(200).json(tripDTOs);
                 }
             }
         }
-        catch (PersistenceException pe) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                    "message", "Database problems, try agian later"));
-            debugLogProd.error(formattedTime + " Database  persistence error", pe);
-        }
+          catch (ApiException ae){
+              int code = ae.getStatusCode();
+              ctx.status(code).json(Map.of("status", code,
+                      "msg","Database problems, try agian later"));
+              debugLogProd.debug(formattedTime, "Error with database trying to trying to get all", ae);
+          }
         catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
                     HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg",
@@ -90,33 +96,31 @@ public class TripController {
                 TripDTO tripDTO = TripConverters.convertToTripDTO(tripDAO.getTripById(id));
                 category = tripDTO.getCategory();
                 String request =category.name().toLowerCase();
-                PackingListDTO packingList = PackingService.getPackingList(request);
-
-                System.out.println("Packaging liste" + packingList.getItems().toString());
+                PackingListDTO packingList = PackingService.getTripPackingList(request);
                 tripDTO.setPackingList(packingList);
-                System.out.println("tripDTO med packaging list: " + tripDTO.getPackingList().toString());
 
-                System.out.println("tripDTO to string: " + tripDTO);
                 ctx.status(200).json(tripDTO);
             }
             else {
-                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"message", "You need to type at id above 0"));
+                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"msg", "You need to type at id above 0"));
             }
         }
         catch (NumberFormatException ne) {
-            ctx.json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
-                    "Invalid id format:" + ctx.pathParam("id")));
-        }
-        catch (PersistenceException pe) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                    "msg","Database problems, try agian later"));
-            debugLogProd.debug(formattedTime, "Error with database trying to find Trip by Id: " + id + " ", pe);
+            ctx.status(HttpStatus.BAD_REQUEST.getCode()).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
+                    "Invalid id format: " + ctx.pathParam("id")));
         }
         catch (ApiException ae) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(
-                    Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR,
-                    "msg", "Problems getting packing ites externaly, try again later"));
-            debugLogProd.error(formattedTime, "Problems getting packing items externaly: ", ae);
+            int code = ae.getStatusCode();
+           String msg = "";
+           String debugMsg = "";
+    if(code == 404){ msg = "Trip with id " + id + " not found in database";}
+    else {
+        msg = "Problems getting packing items externally, try again later";
+        debugLogProd.error(formattedTime, debugMsg, ae);
+    }
+        ctx.status(code).json(
+                    Map.of("status", HttpStatus.forStatus(code).getCode(),
+                    "msg", msg ));
         }
         catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",
@@ -138,10 +142,11 @@ public class TripController {
                     json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(),
                             "msg", "Invalid post, see documentation for correct form"));
         }
-        catch (PersistenceException pe){
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+        catch (ApiException ae){
+            int code = ae.getStatusCode();
+            ctx.status(code).json(Map.of("status", code,
                     "msg","Database problems, try agian later"));
-            debugLogProd.error(formattedTime, "Database problems while creation a trip", pe);
+            debugLogProd.debug(formattedTime, "Error with database trying to trying to create trip", ae);
         }
         catch(Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
@@ -159,7 +164,7 @@ public class TripController {
            trip = tripDAO.getTripById(id);
 
            if (trip == null) {
-               ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(), "message", "guide not found"));
+               ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status", HttpStatus.NOT_FOUND.getCode(), "msg", "guide not found"));
                return;
            }
        }
@@ -188,9 +193,11 @@ public class TripController {
        }
        ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg", message));
    }
-   catch (PersistenceException pe) {
-       ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Database problems, try again later"));
-       debugLogProd.debug(formattedTime + "; Database error trying to update trip", pe);
+   catch (ApiException ae){
+       int code = ae.getStatusCode();
+       ctx.status(code).json(Map.of("status", code,
+               "msg","Database problems, try agian later"));
+       debugLogProd.debug(formattedTime, " Database error trying to update trip ", ae);
    }
    catch (Exception e) {
        ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Unexpected error updating trip" + ctx.pathParam("id")));
@@ -205,23 +212,21 @@ public class TripController {
             id = Integer.parseInt(ctx.pathParam("id"));
             if (id > 0) {
                 tripDAO.deleteTrip(id);
+                ctx.status(HttpStatus.OK).json(Map.of("status",HttpStatus.OK.getCode(),"msg", "trip with id: " + id + " was deleted"));
             }
             else {
-                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"message", "You need to type at id above 0"));
+                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"msg", "You need to type at id above 0"));
             }
         }
         catch (NumberFormatException ne) {
             ctx.json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
                     "Invalid id format:" + ctx.pathParam("id")));
         }
-        catch (ApiException ex){
-            ctx.status(HttpStatus.NOT_FOUND).json(Map.of("status",  HttpStatus.NOT_FOUND.getCode(),
-                    "message", "Trip with id: " + id + " Was not found"));
-        }
-        catch (PersistenceException pe) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                    "msg", "There was a problem with the database"));
-            debugLogProd.debug(formattedTime + "; Database problems while trying to delete Trip with Id: " + id, pe);
+        catch (ApiException ae){
+            int code = ae.getStatusCode();
+            ctx.status(code).json(Map.of("status", code,
+                    "msg","Database problems, try agian later"));
+            debugLogProd.debug(formattedTime, " Database error trying to delete trip ", ae);
         }
         catch(Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
@@ -241,11 +246,11 @@ public class TripController {
 
                ctx.status(HttpStatus.OK).json(totalPrices);
         }
-        catch (PersistenceException pe){
-
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                    "msg",  "Database problems, try again later"));
-            debugLogProd.error(formattedTime, "Database problems while calculating price for trips for each guide", pe);
+        catch (ApiException ae){
+            int code = ae.getStatusCode();
+            ctx.status(code).json(Map.of("status", code,
+                    "msg","Database problems, try agian later"));
+            debugLogProd.debug(formattedTime, " Database error trying to get all trips in: totalPriceTripsByGuide", ae);
         }
         catch (NullPointerException npe) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
@@ -260,6 +265,7 @@ public class TripController {
     }
 
     public void getPackingWeight(Context ctx) {
+        PackingService packingService = new PackingService();
         int id = 0;
         Category category;
         try {
@@ -268,13 +274,13 @@ public class TripController {
             if (id > 0) {
                 TripDTO tripDTO = TripConverters.convertToTripDTO(tripDAO.getTripById(id));
                 category = tripDTO.getCategory();
-                PackingListDTO packingList = PackingService.getPackingList(category.name().toLowerCase());
+                PackingListDTO packingList = packingService.getTripPackingList(category.name().toLowerCase());
                 Integer total = PackingService.calcPackingTotalWeight(packingList);
                 tripDTO.setPackingList(packingList);
-                ctx.status(200).json(total);
+                ctx.status(200).json(Map.of("status", HttpStatus.OK.getCode(),"msg","Weight in grams: " + total));
             }
             else {
-                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"message", "You need to type at id above 0"));
+                ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status",HttpStatus.BAD_REQUEST.getCode(),"msg", "You need to type at id above 0"));
             }
         }
         catch(BadRequestResponse bre) {
@@ -290,12 +296,26 @@ public class TripController {
             }
             ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg", message));
         }
-        catch (PersistenceException pe) {
-            ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Database problems, try again later"));
-            debugLogProd.debug(formattedTime + "; Database error trying to deliver packaging weight", pe);
+        catch (NumberFormatException nfe){
+            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
+                    "You need to type Id format correct, like: 1"));
+        }
+        catch (ApiException ae) {
+            int code = ae.getStatusCode();
+            String msg = "";
+            String debugMsg = "";
+            if(code == 404){ msg = "Trip with id " + id + " not found in database";
+                debugMsg = "Not a error. Trip not found in db";}
+            else {msg = "problems getting trip with Id: " + id + "try again later";
+                debugMsg = "Problems with database trying to get trip with Id: " + id;}
+            ctx.status(code).json(
+                    Map.of("status", HttpStatus.forStatus(code).getCode(),
+                            "msg", msg ));
+            debugLogProd.error(formattedTime, debugMsg, ae);
         }
         catch (Exception e) {
-            ctx.json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "msg", "Unexpected error updating trip" + ctx.pathParam("id")));
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR.getCode()).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
+                    "msg", "Unexpected error updating trip" + ctx.pathParam("id")));
             debugLogProd.debug(formattedTime + "; Unexpected error deliver packaging weight", e);
         }
     }
@@ -311,33 +331,30 @@ public class TripController {
 
             if (tripId <= 0) {
                 ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(),
-                        "message", "TripId must be greater than 0"
-                ));
+                        "msg", "TripId must be greater than 0"));
                 return;
             }
             if (guideId <= 0) {
                 ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(),
-                        "message", "GuideId must be greater than 0"
+                        "msg", "GuideId must be greater than 0"
                 ));
                 return;
             }
             tripDAO.addGuideToTrip(tripId, guideId);
-            ctx.status(HttpStatus.OK).json(Map.of("status", HttpStatus.OK.getCode(), "message", "Guide have been added"));
+            ctx.status(HttpStatus.OK).json(Map.of("status", HttpStatus.OK.getCode(), "msg", "Guide have been added"));
         }
         catch (NumberFormatException ne) {
             ctx.json(Map.of("status", HttpStatus.BAD_REQUEST.getCode(), "msg",
                     "Invalid id format:" + ctx.pathParam("id")));
         }
-        catch (PersistenceException pe) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR.getCode(),
-                    "msg","Database problems, try agian later"));
-            debugLogProd.debug(formattedTime, "Error with database trying to add guide to trip: " + tripId + " ", pe);
-        }
         catch (ApiException ae) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(
-                    Map.of("status", HttpStatus.INTERNAL_SERVER_ERROR,
-                            "msg", ae.getMessage()));
-            debugLogProd.error(formattedTime, "Problems with: ", ae);
+            int code = ae.getStatusCode();
+            if (code == 404) {
+                ctx.status(code).json(Map.of("status", code, "msg", ae.getMessage()));
+            } else {
+                ctx.status(code).json(Map.of("status", code, "msg", "problems with database, try again later"));
+                debugLogProd.error(formattedTime, "DB error in linkGuideToTrip", ae);
+            }
         }
         catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).json(Map.of("status",

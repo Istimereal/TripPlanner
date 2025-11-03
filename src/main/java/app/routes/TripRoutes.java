@@ -31,31 +31,39 @@ public class TripRoutes {
     public EndpointGroup getTripRoutes() {
         return () -> {
 
-            get("/", tripController::getTrips, Role.ADMIN, Role.USER);
-            get("/{id}", tripController::getTripById, Role.ADMIN, Role.USER);
-            post("/", tripController::createTrip, Role.ADMIN);
-            put("/{id}", tripController::updateTrip, Role.ADMIN);
-            delete("/{id}", tripController::deleteTrip, Role.ADMIN);
+            // Mere specifikke/statiske STIER først
             get("/guides/totalprice", tripController::totalPriceTripsByGuide, Role.ADMIN);
+
+            // Understier med id (tilføj regex på id)
             get("/{id}/packing/weight", tripController::getPackingWeight, Role.ADMIN, Role.USER);
             put("/{tripId}/guides/{guideId}", tripController::linkGuideToTrip, Role.ADMIN);
+
+
+            get("/", tripController::getTrips, Role.ADMIN, Role.USER);  // ?category=lake gives all trips by a category
+            post("/", tripController::createTrip, Role.ADMIN);
+            put("/{id}", tripController::updateTrip);
+            delete("/{id}", tripController::deleteTrip, Role.ADMIN);
+
+
+            get("/{id}", tripController::getTripById, Role.ADMIN, Role.USER);
+
+
+            post("/guides", guideController::createGuide, Role.ADMIN);
+
+           /*
+            put("/{tripId}/guides/{guideId}", tripController::linkGuideToTrip, Role.ADMIN);
+            get("/{id}/packing/weight", tripController::getPackingWeight, Role.ADMIN, Role.USER);
+            put("/{id}", tripController::updateTrip, Role.ADMIN);
+            get("/", tripController::getTrips, Role.ADMIN, Role.USER);
+            post("/", tripController::createTrip, Role.ADMIN);
+            delete("/{id}", tripController::deleteTrip, Role.ADMIN);
+            get("/{id:\\\\d+}", tripController::getTripById, Role.ADMIN, Role.USER);
+            get("/guides/totalprice", tripController::totalPriceTripsByGuide, Role.ADMIN);
+
+
             // POST /guides
-             post("/guides", guideController::createGuide, Role.ADMIN);
+             post("/guides", guideController::createGuide, Role.ADMIN);  */
         };
     }
 
-    /*
-    public EndpointGroup getTripRoutes() {
-
-        return  () -> {
-
-            get(ctx -> tripController.getAllTrips(ctx), Role.ADMIN, Role.USER);
-            get(ctx -> tripController.getTripById(ctx), Role.ADMIN, Role.USER);
-            post(ctx -> tripController.createTrip(ctx), Role.ADMIN);
-            patch(ctx -> tripController.updateTrip(ctx), Role.ADMIN);
-            delete(ctx -> tripController.deleteTrip(ctx), Role.ADMIN);
-            get(ctx -> tripController.getTripsByCategory(ctx), Role.ADMIN, Role.USER);
-
-        };
-    }  */
 }

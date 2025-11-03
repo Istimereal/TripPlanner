@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.testcontainers.shaded.org.bouncycastle.crypto.params.CramerShoupPublicKeyParameters;
 
 import java.io.IOException;
 import java.net.URI;
@@ -16,60 +17,30 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 public class PackingService {
 
-    public static PackingListDTO getPackingList(String category) {
-        PackingListDTO results =  null;
-        String uri = "https://packingapi.cphbusinessapps.dk/packinglist/" + category;
+       static ApiService apiService = new ApiService();
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        HttpClient client = HttpClient.newHttpClient();
+        public static PackingListDTO getTripPackingList (String category){
+            ConvertJsonToPackingListDTO convertJsonToPackingListDTO = new ConvertJsonToPackingListDTO();
+         //   PackingListDTO result = new PackingListDTO();
+          //  PackingListDTO results = null;
+            String url = "https://packingapi.cphbusinessapps.dk/packinglist/" + category;
 
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(uri))
-                    .GET()
-                    .build();
+                String response = apiService.fetchFromApi(url);
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("FETCH RESULT:\n" + response);
 
-            if (response.statusCode() == 200) {
-                Object jSonGet = response.body();
+            PackingListDTO results = convertJsonToPackingListDTO.packingApiToPackingListDTO(response);
 
-         return objectMapper.readValue(jSonGet.toString(), PackingListDTO.class);
-
-            } else if (response.statusCode() != 200) {
-                throw new ApiException(response.statusCode(), "Unexpected response from Packing service");
-            }
-        }
-        catch (InterruptedException ie) {
-            throw new ApiException(504, "Not Found");
-        }
-        catch (JsonParseException jpe){
-
-            throw new ApiException(404, "could not read/parse Packing response in correct format");
-        }
-        catch (JsonProcessingException jme){
-            throw new ApiException(500, "could not map Packing response in correct format");
-        }
-       catch(URISyntaxException use){
-            throw new ApiException(400, "URI error");
-        }
-        catch (IOException ioe)
-            {
-            throw new ApiException(502, "I/O Error");
-            }
-        catch (Exception e) {
-            throw new ApiException(500, "Unexpected error from using packing service");
-        }
-        return results;
+            return results;
         }
 
         public static Integer calcPackingTotalWeight(PackingListDTO packingListDTO){
-Integer result;
+       Integer result;
+
        return result = packingListDTO.getItems().stream()
                .mapToInt(ItemForPackagingDTO::getWeightInGrams)
                .sum();
